@@ -1,0 +1,7 @@
+[tool.mypy]
+plugins = ["mypy_django_plugin.main"]
+files = ["config", "businesses", "manage.py"]
+check_untyped_defs = true
+
+[tool.django-stubs]
+django_settings_module = "config.test_settings"

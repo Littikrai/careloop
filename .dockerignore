@@ -1,0 +1,9 @@
+*
+!requirements.txt
+!manage.py
+!config/
+!config/**
+!businesses/
+!businesses/**
+**/__pycache__/
+**/*.pyc
