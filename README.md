@@ -66,7 +66,7 @@ Tests cover the administrator create/list flow, two separate public business pag
 
 ## Verification status
 
-Application tests, type checking, and an actual Gunicorn/WhiteNoise HTTP smoke check were run on macOS with Python 3.14. Docker is not installed in the development environment, so the image and Compose startup have **not** been run. Windows and Linux installation are targets, not verified platforms. No capacity or latency claim is made.
+Application tests, type checking, and an actual Gunicorn/WhiteNoise HTTP smoke check were run on macOS with Python 3.14. The Docker image and Compose stack were also built and tested on macOS: the service became healthy, migrations ran, administrator login and business creation worked over HTTP, and the named volume retained accounts and businesses across restart and `docker compose down` / `up`. Windows and Linux installation remain targets, not verified platforms. No capacity or latency claim is made.
 
 ## Planning
 

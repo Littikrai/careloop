@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** implemented-awaiting-container-verification
+**Status:** completed
 
 - [x] มีขั้นตอนตั้งค่าครั้งแรกและสร้างบัญชี admin ที่ใช้งานได้จริง โดยไม่ใช้รหัสผ่านสาธารณะตายตัว
 - [x] admin ล็อกอิน/ออกจากระบบได้ และดูแลทุกธุรกิจในการติดตั้งเดียวกันได้; user ไม่ต้องสมัครบัญชีหรือล็อกอิน
@@ -23,4 +23,4 @@
 - Runtime choices recorded in `docs/decisions/initial-runtime.md`; no vector database choice was needed for this slice.
 - Passed: five Django integration tests, including separate-process disk persistence; mypy; Django system/migration checks; pip dependency checks; actual Gunicorn/WhiteNoise HTTP smoke for login and static assets; setup secret generation and non-overwrite check.
 - Parallel code-review: Standards 0 findings; Spec 0 findings. Baseline was the empty tree because the repository had no previous commits.
-- [ ] Run Docker Compose build/startup, create admin interactively, verify health and restart/volume persistence in an environment with Docker. Docker is absent here; Windows/Linux installation is also unverified. This ticket is not marked fully verified or closed.
+- [x] Docker Compose image built and started healthy on macOS. Verified migrations, administrator login through HTTP, two business creations, separate public chat pages, container restart, and named-volume persistence across `docker compose down` / `up`. Removed the smoke-test account and businesses afterward; kept the volume and generated local `.env` for the next run. Windows/Linux installation remains unverified.

@@ -10,6 +10,6 @@ Baseline: empty tree, initial repository, `git diff --cached`; no prior commits.
 
 0 actionable findings. Admin provisioning, login/logout, multi-business creation/listing, separate anonymous public pages, permission enforcement, honest unavailable-chat state and persistence are implemented.
 
-## Verification limit
+## Follow-up container verification
 
-Docker is not available here. Container build/startup, health check and named-volume behavior have only been inspected statically. Process-restart database tests and a real local Gunicorn HTTP check do not substitute for Docker validation. The ticket remains implemented-awaiting-container-verification.
+Docker Compose was subsequently verified on macOS. The image built, migrations ran, the health check passed, administrator login and two business creations worked over HTTP, public chat pages loaded, and data persisted across both container restart and `docker compose down` / `up`. A Gunicorn 26 control-socket permission warning found during the first run was fixed by disabling the unused control socket; the rebuilt container started without the warning. Windows and Linux installation remain unverified.
