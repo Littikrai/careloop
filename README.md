@@ -1,6 +1,6 @@
 # Customer Service Bot
 
-Self-hosted, multi-business customer support. This first slice provides administrator login, business creation, and a separate public chat landing page for each business. Q&A, embeddings, LLM answers, and feedback are not implemented yet; chat pages state that clearly.
+Self-hosted, multi-business customer support. Administrators create and publish Q&A, questions are embedded locally on CPU, Qdrant retrieves knowledge from the current business, and OpenRouter produces an answer from that knowledge.
 
 ## Install with Docker Compose
 
@@ -9,6 +9,7 @@ Requires Docker Engine/Desktop with Compose and Python 3 to generate the local c
 ```sh
 python3 scripts/setup_env.py
 # Windows: use `py scripts/setup_env.py` if `python3` is unavailable.
+# Open .env and set OPENROUTER_API_KEY before testing generated answers.
 docker compose up --build -d
 # Wait until `docker compose ps` reports healthy, then:
 docker compose exec web python manage.py createsuperuser
@@ -16,9 +17,11 @@ docker compose exec web python manage.py createsuperuser
 
 Choose your own administrator username and password in the interactive prompt. No default password is shipped. Keep the password private; password input is hidden. Every account created with `createsuperuser` manages all businesses. There is no customer registration or per-business role management.
 
-Open http://localhost:8080/admin/, sign in, select **Businesses → Add business**, and save a name. **Open chat** links to that business's public page; visitors do not need an account. An unknown business URL returns 404. Use **Log out** to end the administrator session.
+The first Docker startup downloads and warms the configured sentence-transformers model; it may take several minutes on CPU. When `docker compose ps` reports healthy, open http://localhost:8080/admin/, sign in, select **Businesses → Add business**, and save a name. Then open **Q&A → Add Q&A**, select the business, enter a question and answer, and save the draft. On the Q&A list, select one or more drafts and choose **Publish selected Q&A**. An item is available to chat only after its status is **Published** and its index status is **Ready**.
 
-SQLite database, accounts, sessions, and business records live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
+Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published Q&A from that business. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. An unknown business URL returns 404. Use **Log out** to end the administrator session.
+
+SQLite data, Qdrant vectors, and the downloaded embedding model live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
 The published port binds to the local machine only. Before exposing the service publicly, configure an HTTPS reverse proxy, trusted hosts, secure cookies, and access-rate limits appropriate to your deployment. `DJANGO_HTTPS_ONLY=true` enables HTTPS redirects and secure cookies; the proxy must provide a correctly trusted HTTPS scheme to the application. Public HTTPS deployment is not tested in this slice.
 
@@ -32,8 +35,14 @@ The published port binds to the local machine only. Before exposing the service 
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated hosts; local addresses by default |
 | `DJANGO_HTTPS_ONLY` | Enable HTTPS-only cookies and redirects; false for local HTTP |
 | `DATA_DIR` | Persistent data directory; `/data` in the container |
+| `OPENROUTER_API_KEY` | Required server-side key for generated answers |
+| `OPENROUTER_MODEL` | OpenRouter model slug; defaults to `openrouter/free` |
+| `EMBEDDING_MODEL` | sentence-transformers model; changing it requires reindexing in a later ticket |
+| `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
+| `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
+| `CHAT_RATE_LIMIT_PER_MINUTE` | Questions per client IP and business; defaults to `30` |
 
-No OpenRouter key is needed for this slice. LLM and embedding model configuration belongs to the later tickets.
+The OpenRouter key is never rendered into a page. The current chat is single-turn; conversation persistence belongs to a later ticket. The in-process rate limit matches the single Gunicorn worker and should use a shared cache if a deployment adds workers or replicas.
 
 ## Local development and checks
 
@@ -62,11 +71,11 @@ python -m mypy
 python manage.py test --settings=config.test_settings
 ```
 
-Tests cover the administrator create/list flow, two separate public business pages, anonymous/ordinary-user access denial, login/logout, CSRF, input validation/escaping, and persistence through separate processes using a temporary on-disk database.
+Tests cover the administrator create/list flow, draft and bulk publish behavior, failed indexing, Qdrant business isolation, OpenRouter request boundaries, public chat, rate limiting, CSRF, authentication, input validation/escaping, and persistence through separate processes.
 
 ## Verification status
 
-Application tests, type checking, and an actual Gunicorn/WhiteNoise HTTP smoke check were run on macOS with Python 3.14. The Docker image and Compose stack were also built and tested on macOS: the service became healthy, migrations ran, administrator login and business creation worked over HTTP, and the named volume retained accounts and businesses across restart and `docker compose down` / `up`. Windows and Linux installation remain targets, not verified platforms. No capacity or latency claim is made.
+Application tests and type checking run on macOS with Python 3.14. The Docker image was built and started on macOS with CPU-only PyTorch; its health check passed, and the configured multilingual model produced a real 384-dimensional embedding from inside the container. The OpenRouter request boundary is covered by tests; generated answers require an operator-provided API key and have not been sent to a real provider during verification. Windows and Linux installation remain targets, not verified platforms. No capacity or latency claim is made.
 
 ## Planning
 

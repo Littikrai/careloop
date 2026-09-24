@@ -48,3 +48,22 @@ HTTPS_ONLY = os.environ.get("DJANGO_HTTPS_ONLY", "false").lower() == "true"
 SESSION_COOKIE_SECURE = HTTPS_ONLY
 CSRF_COOKIE_SECURE = HTTPS_ONLY
 SECURE_SSL_REDIRECT = HTTPS_ONLY
+RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "3"))
+RAG_SCORE_THRESHOLD = float(os.environ.get("RAG_SCORE_THRESHOLD", "0.55"))
+RAG_INSUFFICIENT_MESSAGE = os.environ.get(
+    "RAG_INSUFFICIENT_MESSAGE",
+    "I don't have enough published information to answer that yet.",
+)
+EMBEDDING_MODEL = os.environ.get(
+    "EMBEDDING_MODEL",
+    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+)
+QDRANT_PATH = os.environ.get("QDRANT_PATH", str(DATA_DIR / "qdrant"))
+OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/free")
+OPENROUTER_API_URL = os.environ.get(
+    "OPENROUTER_API_URL",
+    "https://openrouter.ai/api/v1/chat/completions",
+)
+OPENROUTER_TIMEOUT_SECONDS = int(os.environ.get("OPENROUTER_TIMEOUT_SECONDS", "45"))
+CHAT_RATE_LIMIT_PER_MINUTE = int(os.environ.get("CHAT_RATE_LIMIT_PER_MINUTE", "30"))

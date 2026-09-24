@@ -2,6 +2,10 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ business.name }} · Customer support</title><link rel="stylesheet" href="{% static 'businesses/chat.css' %}"></head>
 <body><main><p class="eyebrow">CUSTOMER SUPPORT</p><h1>{{ business.name }}</h1>
-<section aria-labelledby="status-title"><div class="symbol" aria-hidden="true">◌</div>
-<h2 id="status-title">We're getting ready to help</h2><p>This business hasn't published any answers yet. Chat is not available yet.</p></section>
-<p class="note">No account needed. Please check back later.</p></main></body></html>
+{% if not has_knowledge %}<p class="notice">This business hasn't published any answers yet. Chat is not available yet.</p>{% endif %}
+<section aria-labelledby="question-title">
+<h2 id="question-title">How can we help?</h2>
+<form method="post">{% csrf_token %}{{ form.question.label_tag }}{{ form.question }}{{ form.question.errors }}<button type="submit">Ask</button></form>
+{% if result %}<div class="answer" role="status"><p class="eyebrow">ANSWER</p><p>{{ result.text }}</p></div>{% endif %}
+</section>
+<p class="note">No account needed. Answers use this business's published Q&amp;A.</p></main></body></html>
