@@ -68,11 +68,23 @@ def upsert_vector(business: Business, item_id: UUID, vector: list[float]) -> Non
     )
 
 
+def delete_vector(business: Business, item_id: UUID) -> None:
+    client = _client()
+    collection = _collection_name(business)
+    if client.collection_exists(collection):
+        client.delete(
+            collection,
+            points_selector=models.PointIdsList(points=[str(item_id)]),
+            wait=True,
+        )
+
+
 def search_vectors(
     business: Business,
     vector: list[float],
     limit: int,
     threshold: float,
+    active_vector_ids: list[UUID] | None = None,
 ) -> list[tuple[UUID, float]]:
     client = _client()
     collection = _collection_name(business)
@@ -83,5 +95,12 @@ def search_vectors(
         query=vector,
         limit=limit,
         score_threshold=threshold,
+        query_filter=(
+            models.Filter(
+                must=[models.HasIdCondition(has_id=[str(item_id) for item_id in active_vector_ids])]
+            )
+            if active_vector_ids is not None
+            else None
+        ),
     )
     return [(UUID(str(point.id)), float(point.score)) for point in result.points]

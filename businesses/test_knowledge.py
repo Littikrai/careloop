@@ -99,7 +99,7 @@ class KnowledgeJourneyTests(TestCase):
         item.refresh_from_db()
         self.assertEqual(item.status, KnowledgeItem.Status.PUBLISHED)
 
-        def search(business, vector, limit, threshold):
+        def search(business, vector, limit, threshold, active_vector_ids):
             if business == coffee and indexed:
                 return [(item.id, 0.91)]
             return []
@@ -171,6 +171,158 @@ class KnowledgeJourneyTests(TestCase):
             vector_store.reset_clients()
 
         self.assertEqual(answer.kind, "answer")
+        self.assertEqual(answer.text, "Nine to five")
+
+    def test_publishing_a_replacement_updates_the_existing_vector_and_answer(self):
+        coffee = Business.objects.create(name="Coffee House")
+        books = Business.objects.create(name="Book Store")
+        original = KnowledgeItem.objects.create(
+            business=coffee,
+            question="Coffee hours?",
+            answer="Nine to five",
+            status=KnowledgeItem.Status.PUBLISHED,
+            index_status=KnowledgeItem.IndexStatus.READY,
+        )
+        other_business_item = KnowledgeItem.objects.create(
+            business=books,
+            question="Book hours?",
+            answer="Ten to six",
+            status=KnowledgeItem.Status.PUBLISHED,
+            index_status=KnowledgeItem.IndexStatus.READY,
+        )
+        replacement = KnowledgeItem.objects.create(
+            business=coffee,
+            question="Coffee hours?",
+            answer="Eight to four",
+            replacement_for=original,
+        )
+        replacement_id = replacement.id
+        indexed: dict[str, list[float]] = {}
+
+        publish_item(
+            replacement,
+            embed_document=lambda text: [1.0, 0.0],
+            upsert_vector=lambda business, item_id, vector: indexed.update({str(item_id): vector}),
+        )
+
+        self.assertEqual(indexed, {str(replacement_id): [1.0, 0.0]})
+        original.refresh_from_db()
+        other_business_item.refresh_from_db()
+        self.assertEqual(original.answer, "Eight to four")
+        self.assertEqual(original.vector_id, replacement_id)
+        self.assertEqual(original.status, KnowledgeItem.Status.PUBLISHED)
+        self.assertFalse(KnowledgeItem.objects.filter(pk=replacement.pk).exists())
+        self.assertEqual(other_business_item.answer, "Ten to six")
+
+    def test_failed_replacement_keeps_the_existing_answer_published(self):
+        business = Business.objects.create(name="Coffee House")
+        original = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Nine to five",
+            status=KnowledgeItem.Status.PUBLISHED,
+            index_status=KnowledgeItem.IndexStatus.READY,
+        )
+        replacement = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Eight to four",
+            replacement_for=original,
+        )
+
+        with self.assertRaisesRegex(RuntimeError, "model unavailable"):
+            publish_item(
+                replacement,
+                embed_document=lambda text: (_ for _ in ()).throw(RuntimeError("model unavailable")),
+                upsert_vector=lambda business, item_id, vector: None,
+            )
+
+        original.refresh_from_db()
+        replacement.refresh_from_db()
+        self.assertEqual(original.answer, "Nine to five")
+        self.assertEqual(original.status, KnowledgeItem.Status.PUBLISHED)
+        self.assertEqual(replacement.status, KnowledgeItem.Status.DRAFT)
+        self.assertEqual(replacement.index_status, KnowledgeItem.IndexStatus.FAILED)
+
+    def test_failed_vector_write_keeps_the_existing_vector_and_answer(self):
+        business = Business.objects.create(name="Coffee House")
+        original = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Nine to five",
+            status=KnowledgeItem.Status.PUBLISHED,
+            index_status=KnowledgeItem.IndexStatus.READY,
+        )
+        replacement = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Eight to four",
+            replacement_for=original,
+        )
+        written_ids: list[str] = []
+
+        def write_then_fail(business, item_id, vector):
+            written_ids.append(str(item_id))
+            raise RuntimeError("connection dropped after write")
+
+        with self.assertRaisesRegex(RuntimeError, "connection dropped"):
+            publish_item(
+                replacement,
+                embed_document=lambda text: [1.0, 0.0],
+                upsert_vector=write_then_fail,
+            )
+
+        original.refresh_from_db()
+        replacement.refresh_from_db()
+        self.assertEqual(written_ids, [str(replacement.id)])
+        self.assertEqual(original.answer, "Nine to five")
+        self.assertEqual(original.vector_id, original.id)
+        self.assertEqual(replacement.index_status, KnowledgeItem.IndexStatus.FAILED)
+
+    @override_settings(RAG_TOP_K=1, RAG_SCORE_THRESHOLD=0.5)
+    def test_failed_replacement_vector_cannot_displace_the_published_vector(self):
+        from . import vector_store
+
+        business = Business.objects.create(name="Coffee House")
+        original = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Nine to five",
+        )
+        replacement = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Eight to four",
+            replacement_for=original,
+        )
+
+        with TemporaryDirectory() as path, override_settings(QDRANT_PATH=path):
+            vector_store.reset_clients()
+            publish_item(
+                original,
+                embed_document=lambda text: [0.9, 0.435],
+                upsert_vector=vector_store.upsert_vector,
+            )
+
+            def write_then_fail(business, item_id, vector):
+                vector_store.upsert_vector(business, item_id, vector)
+                raise RuntimeError("connection dropped after write")
+
+            with self.assertRaisesRegex(RuntimeError, "connection dropped"):
+                publish_item(
+                    replacement,
+                    embed_document=lambda text: [1.0, 0.0],
+                    upsert_vector=write_then_fail,
+                )
+            answer = answer_question(
+                business,
+                "Hours?",
+                embed_query=lambda text: [1.0, 0.0],
+                search_vectors=vector_store.search_vectors,
+                complete=lambda question, knowledge: knowledge[0][1],
+            )
+            vector_store.reset_clients()
+
         self.assertEqual(answer.text, "Nine to five")
 
 
@@ -250,6 +402,49 @@ class ChatJourneyTests(TestCase):
             response = self.client.post(business.get_absolute_url(), {"question": "Hours?"})
         self.assertContains(response, "answer service is temporarily unavailable")
 
+    def test_admin_creates_a_replacement_draft_without_changing_the_published_item(self):
+        business = Business.objects.create(name="Coffee House")
+        original = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Nine to five",
+            status=KnowledgeItem.Status.PUBLISHED,
+            index_status=KnowledgeItem.IndexStatus.READY,
+        )
+        get_user_model().objects.create_superuser("owner", "", "Strong-password-123")
+        self.client.login(username="owner", password="Strong-password-123")
+
+        response = self.client.post(
+            "/admin/businesses/knowledgeitem/",
+            {"action": "create_replacement_drafts", "_selected_action": [str(original.id)], "index": "0"},
+        )
+
+        self.assertEqual(response.status_code, 302)
+        original.refresh_from_db()
+        replacement = KnowledgeItem.objects.get(replacement_for=original)
+        self.assertEqual(original.answer, "Nine to five")
+        self.assertEqual(replacement.answer, "Nine to five")
+        self.assertEqual(replacement.status, KnowledgeItem.Status.DRAFT)
+
+    def test_admin_delete_removes_knowledge_even_when_vector_deletion_fails(self):
+        business = Business.objects.create(name="Coffee House")
+        item = KnowledgeItem.objects.create(
+            business=business,
+            question="Hours?",
+            answer="Nine to five",
+            status=KnowledgeItem.Status.PUBLISHED,
+            index_status=KnowledgeItem.IndexStatus.READY,
+        )
+        get_user_model().objects.create_superuser("owner", "", "Strong-password-123")
+        self.client.login(username="owner", password="Strong-password-123")
+
+        with patch("businesses.admin.delete_vector", side_effect=RuntimeError("Qdrant offline")) as delete_vector:
+            response = self.client.post(f"/admin/businesses/knowledgeitem/{item.id}/delete/", {"post": "yes"})
+
+        self.assertEqual(response.status_code, 302)
+        delete_vector.assert_called_once_with(business, item.id)
+        self.assertFalse(KnowledgeItem.objects.filter(pk=item.id).exists())
+
 
 class QdrantVectorStoreTests(TestCase):
     def test_vectors_are_persisted_in_separate_business_collections(self):
@@ -271,6 +466,12 @@ class QdrantVectorStoreTests(TestCase):
             self.assertEqual(
                 vector_store.search_vectors(books, [1.0, 0.0], 3, 0.5),
                 [],
+            )
+            vector_store.delete_vector(coffee, coffee_item.id)
+            self.assertEqual(vector_store.search_vectors(coffee, [1.0, 0.0], 3, 0.5), [])
+            self.assertEqual(
+                vector_store.search_vectors(books, [0.0, 1.0], 3, 0.5),
+                [(books_item.id, 1.0)],
             )
             vector_store.reset_clients()
 

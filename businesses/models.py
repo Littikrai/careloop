@@ -3,6 +3,7 @@ import unicodedata
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import Q
 from django.urls import reverse
 
 
@@ -34,6 +35,14 @@ class KnowledgeItem(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="knowledge_items")
+    vector_id = models.UUIDField(blank=True, null=True, editable=False)
+    replacement_for = models.ForeignKey(
+        "self",
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE,
+        related_name="replacement_drafts",
+    )
     question = models.TextField()
     answer = models.TextField()
     status = models.CharField(max_length=16, choices=Status, default=Status.DRAFT)
@@ -50,6 +59,7 @@ class KnowledgeItem(models.Model):
             models.UniqueConstraint(
                 fields=["business", "question", "answer"],
                 name="unique_business_question_answer",
+                condition=Q(replacement_for__isnull=True),
             )
         ]
 
@@ -61,10 +71,15 @@ class KnowledgeItem(models.Model):
             errors["question"] = "Question cannot be empty."
         if not self.answer:
             errors["answer"] = "Answer cannot be empty."
+        replacement = self.replacement_for
+        if replacement and replacement.business_id != self.business_id:
+            errors["replacement_for"] = "A replacement must belong to the same business."
         if errors:
             raise ValidationError(errors)
 
     def save(self, *args, **kwargs) -> None:
+        if self.status == self.Status.PUBLISHED and self.vector_id is None:
+            self.vector_id = self.id
         self.full_clean()
         super().save(*args, **kwargs)
 

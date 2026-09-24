@@ -3,6 +3,7 @@
 Implementation choice for **เพิ่ม Q&A แล้วถามบอตได้จริง**.
 
 - Administrators create Q&A as drafts. Publishing embeds the question locally and only marks the item published after the vector is stored successfully.
+- Editing a published Q&A creates a replacement draft. A successful replacement overwrites the original item's vector and content, so new retrieval returns one current answer while the original remains available until indexing succeeds. Deletion removes the database record first; a stale vector is ignored by the database check if cleanup fails.
 - The default embedding model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`, a CPU-capable multilingual sentence-similarity model. The model name is configurable.
 - Qdrant client local mode persists vectors under the existing application data volume. Each business and embedding model uses a separate collection, and retrieved IDs are checked again against published database records from the current business.
 - The default OpenRouter model is `openrouter/free`, configurable through `.env`. The API key remains server-side.
