@@ -16,7 +16,7 @@ docker compose exec web python manage.py createsuperuser
 
 Choose your own administrator username and password in the interactive prompt. No default password is shipped. Keep the password private; password input is hidden. Every account created with `createsuperuser` manages all businesses. There is no customer registration or per-business role management.
 
-Open http://localhost:8000/admin/, sign in, select **Businesses → Add business**, and save a name. **Open chat** links to that business's public page; visitors do not need an account. An unknown business URL returns 404. Use **Log out** to end the administrator session.
+Open http://localhost:8080/admin/, sign in, select **Businesses → Add business**, and save a name. **Open chat** links to that business's public page; visitors do not need an account. An unknown business URL returns 404. Use **Log out** to end the administrator session.
 
 SQLite database, accounts, sessions, and business records live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
