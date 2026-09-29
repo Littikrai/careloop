@@ -172,3 +172,9 @@ class EmbeddedChatTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.integration.embed_token)
         self.assertContains(response, "/static/businesses/widget.js")
+
+    def test_widget_demo_page_extracts_a_token_from_the_direct_iframe_url(self):
+        response = self.client.get(f"/widget-test/?token=http://localhost:8080/embed/{self.integration.embed_token}/")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, f'data-token="{self.integration.embed_token}"')

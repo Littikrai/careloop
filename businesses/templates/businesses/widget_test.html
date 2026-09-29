@@ -20,11 +20,11 @@
     <h1>Try a business chat widget</h1>
     <section>
       <form method="get">
-        <label for="token">Embed token</label>
+        <label for="token">Embed token or direct iframe URL</label>
         <input id="token" name="token" value="{{ token }}" autocomplete="off" required>
         <button type="submit">Load widget</button>
       </form>
-      <p>Add <code>http://localhost:8080</code> to that integration's allowed origins first. The widget button appears at the bottom right after you load a token.</p>
+      <p>Paste either value from the integration page. Add <code>http://localhost:8080</code> to that integration's allowed origins first. The widget button appears at the bottom right after you load it.</p>
     </section>
   </main>
   {% if token %}<script async src="{% static 'businesses/widget.js' %}" data-token="{{ token }}"></script>{% endif %}

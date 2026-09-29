@@ -1,6 +1,7 @@
 from uuid import UUID
 import hashlib
 import time
+from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core.cache import cache
@@ -47,7 +48,10 @@ def embed_chat(request: HttpRequest, token: str) -> HttpResponse:
 
 @require_http_methods(["GET"])
 def widget_test(request: HttpRequest) -> HttpResponse:
-    return render(request, "businesses/widget_test.html", {"token": request.GET.get("token", "").strip()})
+    value = request.GET.get("token", "").strip()
+    path = urlsplit(value).path
+    token = path.removeprefix("/embed/").strip("/") if path.startswith("/embed/") else value.strip("/")
+    return render(request, "businesses/widget_test.html", {"token": token})
 
 
 def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = False) -> HttpResponse:
