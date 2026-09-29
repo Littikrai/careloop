@@ -33,6 +33,17 @@ The script creates an accessible floating Chat button and opens the business-bou
 
 The integration page can rotate the embed token. Rotation invalidates the old widget immediately, so copy the new tag before deploying it. It can also create an API key for a later backend integration; the complete key appears in the one-time admin message, while the database retains only its hash. Creating a replacement key keeps the previous key usable for 24 hours; administrators may revoke any key earlier from **Business API keys**.
 
+## Backend Chat API
+
+Use **Create or rotate API key** on a Business integration, copy the one-time key into the business backend, then make this server-to-server request:
+
+    curl http://localhost:8080/api/v1/chat \
+      -H 'Authorization: Bearer YOUR_API_KEY' \
+      -H 'Content-Type: application/json' \
+      --data '{"question":"When are you open?"}'
+
+A successful response has an answer and a status such as answer or insufficient_knowledge. Invalid or revoked keys return 401; malformed questions return 422; exhausted API-key rate limits return 429; RAG or LLM failures return 503. This endpoint deliberately has no CORS support, so do not put its API key in browser code. Use the widget for browser chat.
+
 SQLite data, Qdrant vectors, and the downloaded embedding model live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
 The published port binds to the local machine only. Before exposing the service publicly, configure an HTTPS reverse proxy, trusted hosts, secure cookies, and access-rate limits appropriate to your deployment. `DJANGO_HTTPS_ONLY=true` enables HTTPS redirects and secure cookies; the proxy must provide a correctly trusted HTTPS scheme to the application. Public HTTPS deployment is not tested in this slice.
@@ -53,6 +64,7 @@ The published port binds to the local machine only. Before exposing the service 
 | `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
 | `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Questions per client IP and business; defaults to `30` |
+| `API_RATE_LIMIT_PER_MINUTE` | Questions per API key per minute; defaults to `30` |
 | `PUBLIC_BASE_URL` | Public base URL used in admin widget and iframe installation code; defaults to `http://localhost:8080` |
 
 The OpenRouter key is never rendered into a page. The current chat is single-turn; conversation persistence belongs to a later ticket. The in-process rate limit matches the single Gunicorn worker and should use a shared cache if a deployment adds workers or replicas.

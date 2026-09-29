@@ -18,5 +18,6 @@ with os.fdopen(fd, "w") as config:
     config.write("RAG_SCORE_THRESHOLD=0.55\n")
     config.write("RAG_TOP_K=3\n")
     config.write("CHAT_RATE_LIMIT_PER_MINUTE=30\n")
+    config.write("API_RATE_LIMIT_PER_MINUTE=30\n")
     config.write("PUBLIC_BASE_URL=http://localhost:8080\n")
 print("Created .env with a unique secret. No administrator password was created.")

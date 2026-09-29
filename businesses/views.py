@@ -1,18 +1,21 @@
 from uuid import UUID
 import hashlib
+import json
 import time
 from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.core.cache import cache
-from django.http import HttpRequest, HttpResponse
+from django.db.models import Q
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.views.decorators.clickjacking import xframe_options_exempt
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .forms import ChatQuestionForm
-from .models import Business, BusinessIntegration, KnowledgeItem
+from .models import Business, BusinessApiKey, BusinessIntegration, KnowledgeItem
 from .openrouter import OpenRouterError
 from .rag import AnswerResult, answer_question
 
@@ -28,6 +31,21 @@ def _within_rate_limit(request: HttpRequest, business: Business) -> bool:
     if cache.add(key, 1, timeout=70):
         return True
     return cache.incr(key) <= limit
+
+
+def _within_api_rate_limit(key: BusinessApiKey) -> bool:
+    # ponytail: per-process counter; use a shared cache before adding workers or replicas.
+    limit = settings.API_RATE_LIMIT_PER_MINUTE
+    if limit <= 0:
+        return True
+    cache_key = f"api:{key.pk}:{int(time.time() // 60)}"
+    if cache.add(cache_key, 1, timeout=70):
+        return True
+    return cache.incr(cache_key) <= limit
+
+
+def _api_error(status: int, code: str, message: str) -> JsonResponse:
+    return JsonResponse({"error": {"code": code, "message": message}}, status=status)
 
 
 @require_http_methods(["GET", "POST"])
@@ -52,6 +70,44 @@ def widget_test(request: HttpRequest) -> HttpResponse:
     path = urlsplit(value).path
     token = path.removeprefix("/embed/").strip("/") if path.startswith("/embed/") else value.strip("/")
     return render(request, "businesses/widget_test.html", {"token": token})
+
+
+@csrf_exempt
+@require_http_methods(["POST"])
+def api_chat(request: HttpRequest) -> JsonResponse:
+    authorization = request.headers.get("Authorization", "")
+    scheme, separator, secret = authorization.partition(" ")
+    if scheme != "Bearer" or not separator or not secret:
+        return _api_error(401, "unauthorized", "Invalid API key.")
+
+    secret_hash = hashlib.sha256(secret.encode()).hexdigest()
+    key = (
+        BusinessApiKey.objects.select_related("integration__business")
+        .filter(secret_hash=secret_hash, revoked_at__isnull=True)
+        .filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+        .first()
+    )
+    if key is None:
+        return _api_error(401, "unauthorized", "Invalid API key.")
+
+    try:
+        payload = json.loads(request.body)
+    except (UnicodeDecodeError, ValueError, RecursionError):
+        return _api_error(422, "invalid_request", "Body must be valid JSON with a question.")
+    question = payload.get("question") if isinstance(payload, dict) else None
+    if not isinstance(question, str):
+        return _api_error(422, "invalid_request", "Question must be a nonempty string.")
+    form = ChatQuestionForm({"question": question})
+    if not form.is_valid():
+        return _api_error(422, "invalid_request", "Question must be a nonempty string.")
+
+    if not _within_api_rate_limit(key):
+        return _api_error(429, "rate_limited", "Too many questions. Please try again in a minute.")
+    try:
+        result = answer_question(key.integration.business, form.cleaned_data["question"])
+    except Exception:
+        return _api_error(503, "service_unavailable", "Chat is temporarily unavailable.")
+    return JsonResponse({"answer": result.text, "status": result.kind})
 
 
 def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = False) -> HttpResponse:
