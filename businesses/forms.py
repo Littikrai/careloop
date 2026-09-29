@@ -6,5 +6,5 @@ class ChatQuestionForm(forms.Form):
         max_length=1000,
         strip=True,
         label="Your question",
-        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Ask about this business..."}),
+        widget=forms.Textarea(attrs={"rows": 2, "placeholder": "Type your message..."}),
     )

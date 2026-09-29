@@ -1,11 +1,22 @@
 {% load static %}<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ business.name }} · Customer support</title><link rel="stylesheet" href="{% static 'businesses/chat.css' %}"></head>
-<body><main><p class="eyebrow">CUSTOMER SUPPORT</p><h1>{{ business.name }}</h1>
-{% if not has_knowledge %}<p class="notice">This business hasn't published any answers yet. Chat is not available yet.</p>{% endif %}
-<section aria-labelledby="question-title">
-<h2 id="question-title">How can we help?</h2>
-<form method="post">{% if not embedded %}{% csrf_token %}{% endif %}{{ form.question.label_tag }}{{ form.question }}{{ form.question.errors }}<button type="submit">Ask</button></form>
-{% if result %}<div class="answer" role="status"><p class="eyebrow">ANSWER</p><p>{{ result.text }}</p></div>{% endif %}
-</section>
-<p class="note">No account needed. Answers use this business's published Q&amp;A.</p></main>{% if embedded %}<script>document.addEventListener("keydown", function (event) { if (event.key === "Escape") window.parent.postMessage({type: "customer-service-close"}, "*"); });</script>{% endif %}</body></html>
+<body class="{% if embedded %}embedded-chat{% endif %}">
+<main class="chat-shell">
+  <header class="chat-header">
+    <div class="business-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div>
+    <div><p class="eyebrow">CUSTOMER SUPPORT</p><h1>{{ business.name }}</h1><p class="chat-status"><span></span>Ready to help</p></div>
+  </header>
+  <section class="conversation" aria-live="polite" aria-label="Conversation">
+    {% if result %}
+      <div class="message message--user"><p>{{ asked_question }}</p></div>
+      <div class="message message--assistant"><div class="message-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div><p>{{ result.text }}</p></div>
+    {% elif not has_knowledge %}
+      <div class="message message--assistant"><div class="message-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div><p>This business hasn't published any answers yet. Chat is not available yet.</p></div>
+    {% else %}
+      <div class="message message--assistant"><div class="message-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div><p>Hello! How can we help you today?</p></div>
+    {% endif %}
+  </section>
+  <form class="composer" method="post">{% if not embedded %}{% csrf_token %}{% endif %}<div class="composer-field">{{ form.question.label_tag }}{{ form.question }}</div>{{ form.question.errors }}<button type="submit" aria-label="Send message">Send</button></form>
+  <p class="chat-note">Answers use this business's published Q&amp;A.</p>
+</main>{% if embedded %}<script>document.addEventListener("keydown", function (event) { if (event.key === "Escape") window.parent.postMessage({type: "customer-service-close"}, "*"); });</script>{% endif %}</body></html>

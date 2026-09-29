@@ -354,6 +354,7 @@ class ChatJourneyTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "เราเปิดเวลา 09:00 น.")
+        self.assertContains(response, 'class="message message--user"')
         self.assertNotContains(response, "10:00")
 
     @override_settings(CHAT_RATE_LIMIT_PER_MINUTE=1)

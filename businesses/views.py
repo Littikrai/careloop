@@ -56,6 +56,7 @@ def widget_test(request: HttpRequest) -> HttpResponse:
 
 def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = False) -> HttpResponse:
     result: AnswerResult | None = None
+    asked_question: str | None = None
     form = ChatQuestionForm(request.POST or None)
     has_knowledge = KnowledgeItem.objects.filter(
         business=business,
@@ -63,6 +64,7 @@ def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = F
         index_status=KnowledgeItem.IndexStatus.READY,
     ).exists()
     if request.method == "POST" and form.is_valid():
+        asked_question = form.cleaned_data["question"]
         if not _within_rate_limit(request, business):
             result = AnswerResult("rate_limited", "Too many questions. Please try again in a minute.")
         else:
@@ -85,6 +87,7 @@ def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = F
             "business": business,
             "form": form,
             "result": result,
+            "asked_question": asked_question,
             "has_knowledge": has_knowledge,
             "embedded": embedded,
         },
