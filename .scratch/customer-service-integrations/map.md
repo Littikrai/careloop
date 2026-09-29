@@ -12,6 +12,7 @@ Label: `wayfinder:map`
 
 ## Decisions so far
 
+- [กำหนดวงจรชีวิตของ embed token และ API key](issues/01-integration-credential-lifecycle.md): ธุรกิจมี token สาธารณะและ key ลับแบบ hash; rotate key มีช่วงเปลี่ยนผ่าน 24 ชั่วโมง และ revoke มีผลทันที
 - ใช้ widget script ที่สร้างปุ่มแชตลอย และมี iframe โดยตรงสำหรับผู้ที่วางตำแหน่งเอง
 - Chat API เป็น backend-only และรับ credential ผ่าน `Authorization: Bearer <api-key>`
 - ธุรกิจมี embed token แบบสาธารณะ และ API key แบบลับที่เก็บ hash แสดงค่าเต็มครั้งเดียว พร้อม rotate/revoke
