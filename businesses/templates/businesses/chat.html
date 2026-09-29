@@ -5,7 +5,7 @@
 {% if not has_knowledge %}<p class="notice">This business hasn't published any answers yet. Chat is not available yet.</p>{% endif %}
 <section aria-labelledby="question-title">
 <h2 id="question-title">How can we help?</h2>
-<form method="post">{% csrf_token %}{{ form.question.label_tag }}{{ form.question }}{{ form.question.errors }}<button type="submit">Ask</button></form>
+<form method="post">{% if not embedded %}{% csrf_token %}{% endif %}{{ form.question.label_tag }}{{ form.question }}{{ form.question.errors }}<button type="submit">Ask</button></form>
 {% if result %}<div class="answer" role="status"><p class="eyebrow">ANSWER</p><p>{{ result.text }}</p></div>{% endif %}
 </section>
-<p class="note">No account needed. Answers use this business's published Q&amp;A.</p></main></body></html>
+<p class="note">No account needed. Answers use this business's published Q&amp;A.</p></main>{% if embedded %}<script>document.addEventListener("keydown", function (event) { if (event.key === "Escape") window.parent.postMessage({type: "customer-service-close"}, "*"); });</script>{% endif %}</body></html>

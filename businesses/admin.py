@@ -1,10 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group, User
 from django.contrib import messages
+from django import forms
+from django.conf import settings
 from django.http import HttpRequest
 from django.utils.html import format_html
+from django.utils import timezone
 
-from .models import Business, KnowledgeItem
+from .models import Business, BusinessApiKey, BusinessIntegration, KnowledgeItem
 from .rag import publish_item
 from .vector_store import delete_vector
 
@@ -13,6 +16,25 @@ admin.site.unregister([User, Group])
 admin.site.site_header = "Customer Service"
 admin.site.site_title = "Customer Service Admin"
 admin.site.index_title = "Your businesses"
+
+
+class BusinessIntegrationForm(forms.ModelForm):
+    allowed_origins = forms.CharField(
+        help_text="One exact origin per line, such as https://shop.example or http://localhost:3000.",
+        widget=forms.Textarea(attrs={"rows": 4}),
+    )
+
+    class Meta:
+        model = BusinessIntegration
+        fields = ["business", "allowed_origins"]
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.initial["allowed_origins"] = "\n".join(self.instance.allowed_origins)
+
+    def clean_allowed_origins(self) -> list[str]:
+        return [origin.strip() for origin in self.cleaned_data["allowed_origins"].splitlines() if origin.strip()]
 
 
 @admin.register(Business)
@@ -27,6 +49,71 @@ class BusinessAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None) -> bool:
         return False
+
+
+@admin.register(BusinessIntegration)
+class BusinessIntegrationAdmin(admin.ModelAdmin):
+    form = BusinessIntegrationForm
+    list_display = ["business", "allowed_origin_count", "updated_at"]
+    search_fields = ["business__name"]
+    actions = ("create_api_key", "rotate_embed_token")
+    readonly_fields = ["widget_details", "embed_url"]
+
+    def get_fields(self, request, obj=None):
+        if obj:
+            return ["business", "allowed_origins", "embed_url", "widget_details"]
+        return ["business", "allowed_origins"]
+
+    @admin.display(description="Allowed origins")
+    def allowed_origin_count(self, integration: BusinessIntegration) -> int:
+        return len(integration.allowed_origins)
+
+    @admin.display(description="Direct iframe URL")
+    def embed_url(self, integration: BusinessIntegration) -> str:
+        return f"{settings.PUBLIC_BASE_URL.rstrip('/')}/embed/{integration.embed_token}/"
+
+    @admin.display(description="Widget installation")
+    def widget_details(self, integration: BusinessIntegration) -> str:
+        script_url = f"{settings.PUBLIC_BASE_URL.rstrip('/')}/static/businesses/widget.js"
+        tag = f'<script async src="{script_url}" data-token="{integration.embed_token}"></script>'
+        return format_html(
+            "<p>Copy this into the business website. The button opens the iframe URL above.</p>"
+            '<textarea readonly rows="3" style="width:100%">{}</textarea>',
+            tag,
+        )
+
+    @admin.action(description="Create or rotate API key (shows the new key once)")
+    def create_api_key(self, request: HttpRequest, queryset) -> None:
+        for integration in queryset:
+            _, secret = integration.create_api_key()
+            self.message_user(
+                request,
+                format_html("Copy this API key now; it will not be shown again: <code>{}</code>", secret),
+                messages.SUCCESS,
+            )
+
+    @admin.action(description="Rotate embed token (old widget stops immediately)")
+    def rotate_embed_token(self, request: HttpRequest, queryset) -> None:
+        for integration in queryset:
+            integration.rotate_embed_token()
+        self.message_user(request, f"Rotated {queryset.count()} embed token(s).", messages.SUCCESS)
+
+
+@admin.register(BusinessApiKey)
+class BusinessApiKeyAdmin(admin.ModelAdmin):
+    list_display = ["integration", "created_at", "expires_at", "revoked_at"]
+    list_filter = ["integration__business"]
+    readonly_fields = ("integration", "created_at", "expires_at", "revoked_at")
+    fields = ("integration", "created_at", "expires_at", "revoked_at")
+    actions = ("revoke_selected",)
+
+    def has_add_permission(self, request) -> bool:
+        return False
+
+    @admin.action(description="Revoke selected API key(s)")
+    def revoke_selected(self, request: HttpRequest, queryset) -> None:
+        queryset.filter(revoked_at__isnull=True).update(revoked_at=timezone.now())
+        self.message_user(request, "Selected API key(s) were revoked.", messages.SUCCESS)
 
 
 @admin.register(KnowledgeItem)

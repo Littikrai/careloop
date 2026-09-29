@@ -23,6 +23,16 @@ To change a published Q&A, select it and choose **Create replacement drafts for 
 
 Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published Q&A from that business. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. An unknown business URL returns 404. Use **Log out** to end the administrator session.
 
+## Embed on a business website
+
+In the admin, add an entry under **Business integrations**, choose its business, and add one allowed website origin on each line. Use exact origins, for example https://shop.example and http://localhost:3000; paths and wildcards are not accepted. Open the saved integration to copy its widget tag:
+
+    <script async src="https://your-bot.example/static/businesses/widget.js" data-token="..."></script>
+
+The script creates an accessible floating Chat button and opens the business-bound chat in an iframe. Press Escape to close it. The same admin page provides a direct iframe URL for layouts that need to position the chat themselves. The iframe sends the existing public chat form to this service; it does not put the OpenRouter key or an API key in the browser.
+
+The integration page can rotate the embed token. Rotation invalidates the old widget immediately, so copy the new tag before deploying it. It can also create an API key for a later backend integration; the complete key appears in the one-time admin message, while the database retains only its hash. Creating a replacement key keeps the previous key usable for 24 hours; administrators may revoke any key earlier from **Business API keys**.
+
 SQLite data, Qdrant vectors, and the downloaded embedding model live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
 The published port binds to the local machine only. Before exposing the service publicly, configure an HTTPS reverse proxy, trusted hosts, secure cookies, and access-rate limits appropriate to your deployment. `DJANGO_HTTPS_ONLY=true` enables HTTPS redirects and secure cookies; the proxy must provide a correctly trusted HTTPS scheme to the application. Public HTTPS deployment is not tested in this slice.
@@ -43,6 +53,7 @@ The published port binds to the local machine only. Before exposing the service 
 | `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
 | `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Questions per client IP and business; defaults to `30` |
+| `PUBLIC_BASE_URL` | Public base URL used in admin widget and iframe installation code; defaults to `http://localhost:8080` |
 
 The OpenRouter key is never rendered into a page. The current chat is single-turn; conversation persistence belongs to a later ticket. The in-process rate limit matches the single Gunicorn worker and should use a shared cache if a deployment adds workers or replicas.
 

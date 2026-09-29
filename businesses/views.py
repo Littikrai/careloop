@@ -6,10 +6,12 @@ from django.conf import settings
 from django.core.cache import cache
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.views.decorators.clickjacking import xframe_options_exempt
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .forms import ChatQuestionForm
-from .models import Business, KnowledgeItem
+from .models import Business, BusinessIntegration, KnowledgeItem
 from .openrouter import OpenRouterError
 from .rag import AnswerResult, answer_question
 
@@ -30,6 +32,20 @@ def _within_rate_limit(request: HttpRequest, business: Business) -> bool:
 @require_http_methods(["GET", "POST"])
 def chat(request: HttpRequest, business_id: UUID) -> HttpResponse:
     business = get_object_or_404(Business, pk=business_id)
+    return _render_chat(request, business)
+
+
+@csrf_exempt
+@xframe_options_exempt
+@require_http_methods(["GET", "POST"])
+def embed_chat(request: HttpRequest, token: str) -> HttpResponse:
+    integration = get_object_or_404(BusinessIntegration.objects.select_related("business"), embed_token=token)
+    response = _render_chat(request, integration.business, embedded=True)
+    response["Content-Security-Policy"] = f"frame-ancestors {' '.join(integration.allowed_origins)}"
+    return response
+
+
+def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = False) -> HttpResponse:
     result: AnswerResult | None = None
     form = ChatQuestionForm(request.POST or None)
     has_knowledge = KnowledgeItem.objects.filter(
@@ -56,7 +72,13 @@ def chat(request: HttpRequest, business_id: UUID) -> HttpResponse:
     response = render(
         request,
         "businesses/chat.html",
-        {"business": business, "form": form, "result": result, "has_knowledge": has_knowledge},
+        {
+            "business": business,
+            "form": form,
+            "result": result,
+            "has_knowledge": has_knowledge,
+            "embedded": embedded,
+        },
     )
     if result and result.kind == "rate_limited":
         response.status_code = 429
