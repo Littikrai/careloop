@@ -23,6 +23,16 @@ To change a published Q&A, select it and choose **Create replacement drafts for 
 
 Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published Q&A from that business. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. An unknown business URL returns 404. Use **Log out** to end the administrator session.
 
+## Import Q&A from JSON
+
+On the **Businesses** list, select **Import Q&A from JSON**, choose the target business, and upload a UTF-8 JSON array. Download or copy [the example file](examples/qa-import.example.json) as a starting point:
+
+    [
+      {"question": "When are you open?", "answer": "Every day, 09:00–18:00."}
+    ]
+
+Each item must contain exactly the question and answer strings. The importer trims text and normalizes Unicode. It validates the complete file before changing data, skips duplicate pairs, and rejects the entire file if a question conflicts with an existing answer. Imported entries are drafts; select them in **Q&A** and use **Publish selected Q&A** before the bot can answer from them.
+
 ## Embed on a business website
 
 In the admin, add an entry under **Business integrations**, choose its business, and add one allowed website origin on each line. Use exact origins, for example https://shop.example and http://localhost:3000; paths and wildcards are not accepted. Open the saved integration to copy its widget tag:
@@ -96,7 +106,7 @@ python -m mypy
 python manage.py test --settings=config.test_settings
 ```
 
-Tests cover the administrator create/list flow, draft and bulk publish behavior, failed indexing, Qdrant business isolation, OpenRouter request boundaries, public chat, rate limiting, CSRF, authentication, input validation/escaping, and persistence through separate processes.
+Tests cover the administrator create/list flow, JSON import and its validation, draft and bulk publish behavior, failed indexing, Qdrant business isolation, OpenRouter request boundaries, public chat and widget behavior, API authentication and rate limits, CSRF, input validation/escaping, and persistence through separate processes.
 
 ## Verification status
 
@@ -104,4 +114,8 @@ Application tests and type checking run on macOS with Python 3.14. The Docker im
 
 ## Planning
 
-See [implementation tickets](.scratch/customer-service-build/README.md) and [domain language](CONTEXT.md). The remaining tickets are not implemented by this change.
+See [core release tickets](.scratch/customer-service-core-release/README.md), [future build tickets](.scratch/customer-service-build/README.md), and [domain language](CONTEXT.md). Feedback/insights and embedding-model reindexing remain future work.
+
+## License
+
+Released under the [MIT License](LICENSE).

@@ -4,9 +4,13 @@ from django.contrib import messages
 from django import forms
 from django.conf import settings
 from django.http import HttpRequest
+from django.shortcuts import redirect, render
+from django.urls import path
 from django.utils.html import format_html
 from django.utils import timezone
 
+from .forms import KnowledgeImportForm
+from .importer import KnowledgeImportError, import_qa_json
 from .models import Business, BusinessApiKey, BusinessIntegration, KnowledgeItem
 from .rag import publish_item
 from .vector_store import delete_vector
@@ -42,6 +46,7 @@ class BusinessAdmin(admin.ModelAdmin):
     list_display = ["name", "chat_link", "created_at"]
     fields = ["name"]
     search_fields = ["name"]
+    change_list_template = "admin/businesses/business/change_list.html"
 
     @admin.display(description="Public chat")
     def chat_link(self, business: Business) -> str:
@@ -49,6 +54,32 @@ class BusinessAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None) -> bool:
         return False
+
+    def get_urls(self):
+        return [
+            path("import-qa/", self.admin_site.admin_view(self.import_qa), name="businesses_business_import_qa"),
+            *super().get_urls(),
+        ]
+
+    def import_qa(self, request: HttpRequest):
+        form = KnowledgeImportForm(request.POST or None, request.FILES or None)
+        if request.method == "POST" and form.is_valid():
+            try:
+                result = import_qa_json(form.cleaned_data["business"], form.cleaned_data["file"].read())
+            except KnowledgeImportError as error:
+                form.add_error("file", str(error))
+            else:
+                self.message_user(
+                    request,
+                    f"Created {result.created} draft Q&A item(s); skipped {result.skipped} duplicate item(s).",
+                    messages.SUCCESS,
+                )
+                return redirect("admin:businesses_knowledgeitem_changelist")
+        return render(
+            request,
+            "admin/businesses/business/import_qa.html",
+            {**self.admin_site.each_context(request), "form": form, "title": "Import Q&A from JSON"},
+        )
 
 
 @admin.register(BusinessIntegration)

@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <div id="content-main">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <p>Duplicate question-and-answer pairs are skipped. A different answer for an existing question rejects the whole file without changing knowledge.</p>
+      <input type="submit" value="Import drafts">
+    </form>
+  </div>
+{% endblock %}
