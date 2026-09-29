@@ -1,0 +1,32 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Widget test page</title>
+  <style>
+    body { margin: 0; background: #f4f6f8; color: #182b37; font: 16px/1.6 system-ui, sans-serif; }
+    main { max-width: 720px; margin: 8vh auto; padding: 28px; }
+    section { padding: 28px; border: 1px solid #dce4e9; border-radius: 16px; background: white; }
+    label { display: block; font-weight: 700; margin-bottom: 8px; }
+    input { width: 100%; padding: 12px; border: 1px solid #9baab3; border-radius: 8px; font: inherit; }
+    button { margin-top: 12px; padding: 10px 18px; border: 0; border-radius: 8px; background: #245c4f; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+    code { overflow-wrap: anywhere; }
+  </style>
+</head>
+<body>
+  <main>
+    <p>LOCAL WIDGET TEST</p>
+    <h1>Try a business chat widget</h1>
+    <section>
+      <form method="get">
+        <label for="token">Embed token</label>
+        <input id="token" name="token" value="{{ token }}" autocomplete="off" required>
+        <button type="submit">Load widget</button>
+      </form>
+      <p>Add <code>http://localhost:8080</code> to that integration's allowed origins first. The widget button appears at the bottom right after you load a token.</p>
+    </section>
+  </main>
+  {% if token %}<script async src="{% static 'businesses/widget.js' %}" data-token="{{ token }}"></script>{% endif %}
+</body>
+</html>

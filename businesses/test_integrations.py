@@ -165,3 +165,10 @@ class EmbeddedChatTests(TestCase):
         self.assertIn("dataset.token", script)
         self.assertIn("/embed/", script)
         self.assertIn("event.source === frame.contentWindow", script)
+
+    def test_widget_demo_page_installs_a_supplied_embed_token(self):
+        response = self.client.get(f"/widget-test/?token={self.integration.embed_token}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.integration.embed_token)
+        self.assertContains(response, "/static/businesses/widget.js")

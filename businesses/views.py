@@ -45,6 +45,11 @@ def embed_chat(request: HttpRequest, token: str) -> HttpResponse:
     return response
 
 
+@require_http_methods(["GET"])
+def widget_test(request: HttpRequest) -> HttpResponse:
+    return render(request, "businesses/widget_test.html", {"token": request.GET.get("token", "").strip()})
+
+
 def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = False) -> HttpResponse:
     result: AnswerResult | None = None
     form = ChatQuestionForm(request.POST or None)
