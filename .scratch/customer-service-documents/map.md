@@ -12,11 +12,10 @@ Label: `wayfinder:map`
 
 ## Decisions so far
 
-<!-- Decisions will be linked here when their child tickets are resolved. -->
+- [กำหนดรูปแบบข้อมูลต้นทางรุ่นแรก](issues/01-define-first-source-formats.md): เพิ่มข้อความ, TXT/Markdown และ JSON title/content; business เลือกใน admin และ product/version เป็น metadata ทางเลือก
 
 ## Not yet specified
 
-- คุณภาพการดึงข้อความจาก PDF/DOCX, OCR สำหรับไฟล์สแกน, และการคงตารางสเปก
 - การ sync ข้อมูลจาก URL, CMS หรือระบบสินค้าภายนอก
 - การแสดงแหล่งอ้างอิงหรือหัวข้อเอกสารในคำตอบลูกค้า
 - การสร้าง FAQ suggestions อัตโนมัติจากเอกสารและขั้นตอนตรวจรับ
@@ -24,4 +23,5 @@ Label: `wayfinder:map`
 ## Out of scope
 
 - การเก็บบทสนทนา, feedback และ insight: อยู่ในงานอนาคตที่เลื่อนไว้
-- การเชื่อมระบบภายนอกแบบอัตโนมัติและ OCR: ต้องกำหนดหลังรู้รูปแบบเอกสารรุ่นแรก
+- PDF/DOCX, CSV, HTML, OCR และการแยกตารางเฉพาะทาง: ใช้การแปลงเป็นข้อความหรือ Markdown ก่อนในรุ่นแรก
+- การเชื่อมระบบภายนอกแบบอัตโนมัติ: ต้องกำหนดใน effort ถัดไป
