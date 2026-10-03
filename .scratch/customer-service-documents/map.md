@@ -13,10 +13,10 @@ Label: `wayfinder:map`
 ## Decisions so far
 
 - [กำหนดรูปแบบข้อมูลต้นทางรุ่นแรก](issues/01-define-first-source-formats.md): เพิ่มข้อความ, TXT/Markdown และ JSON title/content; business เลือกใน admin และ product/version เป็น metadata ทางเลือก
+- [กำหนดวงจรชีวิตเอกสารและส่วนข้อความ](issues/02-define-document-and-chunk-lifecycle.md): Published เดิมทำงานจน draft revision ใหม่สร้างทุก vector สำเร็จ แล้วสลับฉบับพร้อม archive ของเดิมในครั้งเดียว
 
 ## Not yet specified
 
-- การ sync ข้อมูลจาก URL, CMS หรือระบบสินค้าภายนอก
 - การแสดงแหล่งอ้างอิงหรือหัวข้อเอกสารในคำตอบลูกค้า
 - การสร้าง FAQ suggestions อัตโนมัติจากเอกสารและขั้นตอนตรวจรับ
 
