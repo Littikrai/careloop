@@ -15,6 +15,7 @@ Label: `wayfinder:map`
 - [กำหนดรูปแบบข้อมูลต้นทางรุ่นแรก](issues/01-define-first-source-formats.md): เพิ่มข้อความ, TXT/Markdown และ JSON title/content; business เลือกใน admin และ product/version เป็น metadata ทางเลือก
 - [กำหนดวงจรชีวิตเอกสารและส่วนข้อความ](issues/02-define-document-and-chunk-lifecycle.md): Published เดิมทำงานจน draft revision ใหม่สร้างทุก vector สำเร็จ แล้วสลับฉบับพร้อม archive ของเดิมในครั้งเดียว
 - [กำหนดสัญญาการค้นหาและตอบจากเอกสาร](issues/03-define-document-retrieval-contract.md): ค้น Q&A และส่วนข้อความเฉพาะฉบับใช้งาน จำกัด context ก่อนส่ง LLM ปฏิเสธเมื่อหลักฐานไม่พอ และคืนแหล่งอ้างอิงที่เปิดเผยได้
+- [กำหนดขั้นตอนแอดมินสำหรับเพิ่มความรู้](issues/04-define-admin-knowledge-workflow.md): ใช้เมนู Documents ใน Django Admin สำหรับเพิ่มหรือ import draft, preview chunks, publish ทีละเอกสาร, ทดสอบ retrieval และแทนที่หรือ archive อย่างปลอดภัย
 
 ## Not yet specified
 
