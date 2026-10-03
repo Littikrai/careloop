@@ -16,6 +16,7 @@ Label: `wayfinder:map`
 - [กำหนดวงจรชีวิตเอกสารและส่วนข้อความ](issues/02-define-document-and-chunk-lifecycle.md): Published เดิมทำงานจน draft revision ใหม่สร้างทุก vector สำเร็จ แล้วสลับฉบับพร้อม archive ของเดิมในครั้งเดียว
 - [กำหนดสัญญาการค้นหาและตอบจากเอกสาร](issues/03-define-document-retrieval-contract.md): ค้น Q&A และส่วนข้อความเฉพาะฉบับใช้งาน จำกัด context ก่อนส่ง LLM ปฏิเสธเมื่อหลักฐานไม่พอ และคืนแหล่งอ้างอิงที่เปิดเผยได้
 - [กำหนดขั้นตอนแอดมินสำหรับเพิ่มความรู้](issues/04-define-admin-knowledge-workflow.md): ใช้เมนู Documents ใน Django Admin สำหรับเพิ่มหรือ import draft, preview chunks, publish ทีละเอกสาร, ทดสอบ retrieval และแทนที่หรือ archive อย่างปลอดภัย
+- [กำหนดบทบาท Q&A เดิมร่วมกับเอกสาร](issues/05-define-qa-compatibility.md): เก็บ Q&A เดิมโดยไม่ migration และให้เฉพาะคำถามที่ตรงหรือมี score สูงถึง override threshold มีสิทธิ์เหนือเอกสารที่ขัดกัน
 
 ## Not yet specified
 
