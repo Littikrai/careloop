@@ -10,7 +10,7 @@
   <section class="conversation" aria-live="polite" aria-label="Conversation">
     {% if result %}
       <div class="message message--user"><p>{{ asked_question }}</p></div>
-      <div class="message message--assistant"><div class="message-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div><p>{{ result.text }}</p></div>
+      <div class="message message--assistant"><div class="message-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div><div class="answer-content"><p>{{ result.text }}</p>{% if result.sources %}<ul class="answer-sources" aria-label="Answer sources">{% for source in result.sources %}<li>{{ source.label }}</li>{% endfor %}</ul>{% endif %}</div></div>
     {% elif not has_knowledge %}
       <div class="message message--assistant"><div class="message-avatar" aria-hidden="true">{{ business.name|slice:":1"|upper }}</div><p>This business hasn't published any answers yet. Chat is not available yet.</p></div>
     {% else %}

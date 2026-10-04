@@ -4,12 +4,15 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** completed
 
-- [ ] OpenRouter ถูกเรียกด้วย strict JSON Schema ที่รองรับ `answer`, `needs_clarification` และ `insufficient_knowledge` พร้อม `answer` และ `source_ids`; request ปิด reasoning และกำหนดให้ provider รองรับ parameters ที่ส่งไป
-- [ ] ระบบตรวจ schema, status และ source IDs หลังตอบกลับ; ID ที่ไม่ได้ส่งเป็น context หรือ payload ผิดรูปแบบเป็น `service_error` โดยไม่เดาคำตอบหรือ retry ไปยังโมเดลอื่นอัตโนมัติ
-- [ ] ระบบ normalize คำถามด้วย Unicode NFC, trim, case folding และยุบ whitespace แล้วให้ Published Q&A เป็น authoritative เฉพาะ exact normalized match; semantic score ใช้ค้นและจัดอันดับเท่านั้น
-- [ ] การ publish หรือ replacement ปฏิเสธ Published Q&A ที่มี normalized question ซ้ำภายในธุรกิจเดียวกัน โดยไม่กระทบ Q&A ที่ใช้งานอยู่
-- [ ] หน้าแชตและ widget แสดง “Verified answer” สำหรับแหล่ง Q&A ที่ LLM อ้างอิง และ Chat API คืน `sources` โดยไม่เปิดเผยคำถามภายใน score หรือ ID ภายใน
-- [ ] ทดสอบ exact/semantic/conflicting Q&A, คำถามกำกวม, insufficient knowledge, malformed OpenRouter output, reasoning ที่ไม่ควรถูกส่งกลับ และการแยกข้อมูลระหว่างธุรกิจ
+- [x] OpenRouter ถูกเรียกด้วย strict JSON Schema ที่รองรับ `answer`, `needs_clarification` และ `insufficient_knowledge` พร้อม `answer` และ `source_ids`; request ปิด reasoning และกำหนดให้ provider รองรับ parameters ที่ส่งไป
+- [x] ระบบตรวจ schema, status และ source IDs หลังตอบกลับ; ID ที่ไม่ได้ส่งเป็น context หรือ payload ผิดรูปแบบเป็น `service_error` โดยไม่เดาคำตอบหรือ retry ไปยังโมเดลอื่นอัตโนมัติ
+- [x] ระบบ normalize คำถามด้วย Unicode NFC, trim, case folding และยุบ whitespace แล้วให้ Published Q&A เป็น authoritative เฉพาะ exact normalized match; semantic score ใช้ค้นและจัดอันดับเท่านั้น
+- [x] การ publish หรือ replacement ปฏิเสธ Published Q&A ที่มี normalized question ซ้ำภายในธุรกิจเดียวกัน โดยไม่กระทบ Q&A ที่ใช้งานอยู่
+- [x] หน้าแชตและ widget แสดง “Verified answer” สำหรับแหล่ง Q&A ที่ LLM อ้างอิง และ Chat API คืน `sources` โดยไม่เปิดเผยคำถามภายใน score หรือ ID ภายใน
+- [x] ทดสอบ exact/semantic/conflicting Q&A, คำถามกำกวม, insufficient knowledge, malformed OpenRouter output, reasoning ที่ไม่ควรถูกส่งกลับ และการแยกข้อมูลระหว่างธุรกิจ
 
+## Verification
+
+ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 62 รายการ โดยจำลองขอบ HTTP ของ OpenRouter; ยังไม่ได้ส่งคำขอจากโค้ดรุ่นนี้ไปยัง provider จริง

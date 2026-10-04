@@ -4,6 +4,7 @@ from django.test import Client, TestCase
 from unittest.mock import patch
 
 from .models import Business, BusinessIntegration, KnowledgeItem
+from .openrouter import CompletionResult
 
 
 class BusinessIntegrationTests(TestCase):
@@ -144,7 +145,7 @@ class EmbeddedChatTests(TestCase):
         with (
             patch("businesses.vector_store.embed_query", return_value=[1.0, 0.0]),
             patch("businesses.vector_store.search_vectors", return_value=[(self.item.id, 0.91)]),
-            patch("businesses.openrouter.complete_answer", return_value="Nine to five") as complete,
+            patch("businesses.openrouter.complete_answer", return_value=CompletionResult("answer", "Nine to five", ("src-1",))) as complete,
         ):
             response = browser.post(f"/embed/{self.integration.embed_token}/", {"question": "Hours?"})
 

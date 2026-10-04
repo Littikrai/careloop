@@ -21,7 +21,7 @@ The first Docker startup downloads and warms the configured sentence-transformer
 
 To change a published Q&A, select it and choose **Create replacement drafts for selected Q&A**. Edit the resulting draft and publish it; customers keep receiving the old answer until the replacement is indexed. Use the standard **Delete** control and its confirmation page to remove a Q&A. A deleted item is excluded from future answers even if local vector cleanup is temporarily unavailable.
 
-Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published Q&A from that business. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. An unknown business URL returns 404. Use **Log out** to end the administrator session.
+Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published Q&A from that business. An exact question match after Unicode and whitespace normalization takes priority; semantic scores only choose candidate sources. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. Answers display a “Verified answer” source label. An unknown business URL returns 404. Use **Log out** to end the administrator session.
 
 ## Import Q&A from JSON
 
@@ -52,7 +52,7 @@ Use **Create or rotate API key** on a Business integration, copy the one-time ke
       -H 'Content-Type: application/json' \
       --data '{"question":"When are you open?"}'
 
-A successful response has an answer and a status such as answer or insufficient_knowledge. Invalid or revoked keys return 401; malformed questions return 422; exhausted API-key rate limits return 429; RAG or LLM failures return 503. This endpoint deliberately has no CORS support, so do not put its API key in browser code. Use the widget for browser chat.
+A successful response has `answer`, `status` (`answer`, `needs_clarification`, or `insufficient_knowledge`), and `sources` (an array of public labels such as `{"type":"qa","label":"Verified answer"}`). Invalid or revoked keys return 401; malformed questions return 422; exhausted API-key rate limits return 429; RAG or LLM failures return 503. This endpoint deliberately has no CORS support, so do not put its API key in browser code. Use the widget for browser chat.
 
 SQLite data, Qdrant vectors, and the downloaded embedding model live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
@@ -69,7 +69,7 @@ The published port binds to the local machine only. Before exposing the service 
 | `DJANGO_HTTPS_ONLY` | Enable HTTPS-only cookies and redirects; false for local HTTP |
 | `DATA_DIR` | Persistent data directory; `/data` in the container |
 | `OPENROUTER_API_KEY` | Required server-side key for generated answers |
-| `OPENROUTER_MODEL` | OpenRouter model slug; defaults to `openrouter/free` |
+| `OPENROUTER_MODEL` | OpenRouter model slug; defaults to `openrouter/free` for trials. Use a fixed compatible model for predictable production answers. |
 | `EMBEDDING_MODEL` | sentence-transformers model; changing it requires reindexing in a later ticket |
 | `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
 | `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
@@ -77,7 +77,7 @@ The published port binds to the local machine only. Before exposing the service 
 | `API_RATE_LIMIT_PER_MINUTE` | Questions per API key per minute; defaults to `30` |
 | `PUBLIC_BASE_URL` | Public base URL used in admin widget and iframe installation code; defaults to `http://localhost:8080` |
 
-The OpenRouter key is never rendered into a page. The current chat is single-turn; conversation persistence belongs to a later ticket. The in-process rate limit matches the single Gunicorn worker and should use a shared cache if a deployment adds workers or replicas.
+The OpenRouter key is never rendered into a page. Every completion requires strict JSON Schema support; an incompatible model/provider returns a service error. The current chat is single-turn; conversation persistence belongs to a later ticket. The in-process rate limit matches the single Gunicorn worker and should use a shared cache if a deployment adds workers or replicas.
 
 ## Local development and checks
 

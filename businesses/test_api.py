@@ -32,7 +32,7 @@ class ChatApiTests(TestCase):
             response = self.post(self.secret, {"question": "Hours?"})
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json(), {"answer": "Nine to five", "status": "answer"})
+        self.assertEqual(response.json(), {"answer": "Nine to five", "status": "answer", "sources": []})
         answer.assert_called_once_with(self.business, "Hours?")
         self.assertNotIn("Access-Control-Allow-Origin", response)
 

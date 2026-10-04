@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from .importer import KnowledgeImportError, import_qa_json
 from .models import Business, KnowledgeItem
 from .rag import answer_question, publish_item
+from .openrouter import CompletionResult
 
 
 class KnowledgeImportTests(TestCase):
@@ -119,7 +120,7 @@ class KnowledgeImportTests(TestCase):
             "When do you open?",
             embed_query=lambda text: [1.0, 0.0],
             search_vectors=lambda business, vector, limit, threshold, active_vector_ids: [(item.id, 0.91)],
-            complete=lambda question, knowledge: knowledge[0][1],
+            complete=lambda question, knowledge: CompletionResult("answer", str(knowledge[0]["answer"]), ("src-1",)),
         )
 
         self.assertEqual(answer.text, "Nine to five")

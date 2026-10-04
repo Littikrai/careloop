@@ -107,7 +107,7 @@ def api_chat(request: HttpRequest) -> JsonResponse:
         result = answer_question(key.integration.business, form.cleaned_data["question"])
     except Exception:
         return _api_error(503, "service_unavailable", "Chat is temporarily unavailable.")
-    return JsonResponse({"answer": result.text, "status": result.kind})
+    return JsonResponse({"answer": result.text, "status": result.kind, "sources": result.sources})
 
 
 def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = False) -> HttpResponse:

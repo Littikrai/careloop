@@ -6,6 +6,7 @@ from django.test import TestCase, override_settings
 from django.contrib.auth import get_user_model
 
 from .models import Business, KnowledgeItem
+from .openrouter import CompletionResult
 from .rag import answer_question, publish_item
 
 
@@ -106,8 +107,9 @@ class KnowledgeJourneyTests(TestCase):
 
         def complete(question, knowledge):
             self.assertEqual(question, "เปิดวันไหน?")
-            self.assertEqual(knowledge, [(item.question, item.answer)])
-            return "ร้านเปิดทุกวัน เวลา 09:00–18:00 น."
+            self.assertEqual(knowledge[0]["question"], item.question)
+            self.assertEqual(knowledge[0]["answer"], item.answer)
+            return CompletionResult("answer", "ร้านเปิดทุกวัน เวลา 09:00–18:00 น.", ("src-1",))
 
         answer = answer_question(
             coffee,
@@ -166,7 +168,7 @@ class KnowledgeJourneyTests(TestCase):
                 "When do you open?",
                 embed_query=lambda text: [1.0, 0.0],
                 search_vectors=vector_store.search_vectors,
-                complete=lambda question, knowledge: knowledge[0][1],
+                complete=lambda question, knowledge: CompletionResult("answer", str(knowledge[0]["answer"]), ("src-1",)),
             )
             vector_store.reset_clients()
 
@@ -319,7 +321,7 @@ class KnowledgeJourneyTests(TestCase):
                 "Hours?",
                 embed_query=lambda text: [1.0, 0.0],
                 search_vectors=vector_store.search_vectors,
-                complete=lambda question, knowledge: knowledge[0][1],
+                complete=lambda question, knowledge: CompletionResult("answer", str(knowledge[0]["answer"]), ("src-1",)),
             )
             vector_store.reset_clients()
 
@@ -348,7 +350,7 @@ class ChatJourneyTests(TestCase):
         with (
             patch("businesses.vector_store.embed_query", return_value=[1.0, 0.0]),
             patch("businesses.vector_store.search_vectors", return_value=[(coffee_item.id, 0.91)]),
-            patch("businesses.openrouter.complete_answer", return_value="เราเปิดเวลา 09:00 น."),
+            patch("businesses.openrouter.complete_answer", return_value=CompletionResult("answer", "เราเปิดเวลา 09:00 น.", ("src-1",))),
         ):
             response = self.client.post(coffee.get_absolute_url(), {"question": "เปิดกี่โมง?"})
 
@@ -478,13 +480,15 @@ class QdrantVectorStoreTests(TestCase):
 
 
 class OpenRouterTests(TestCase):
+    sources: list[dict[str, str | bool]] = [{"id": "src-1", "type": "qa", "question": "Opening time?", "answer": "Nine o'clock", "authoritative": False}]
+
     @override_settings(OPENROUTER_API_KEY="")
     def test_missing_api_key_is_reported_without_a_network_request(self):
         from .openrouter import OpenRouterError, complete_answer
 
         with patch("urllib.request.urlopen") as urlopen:
             with self.assertRaisesRegex(OpenRouterError, "OPENROUTER_API_KEY"):
-                complete_answer("When do you open?", [("Opening time?", "Nine o'clock")])
+                complete_answer("When do you open?", self.sources)
         urlopen.assert_not_called()
 
     @override_settings(OPENROUTER_API_KEY="test-key", OPENROUTER_MODEL="openrouter/free")
@@ -499,12 +503,13 @@ class OpenRouterTests(TestCase):
                 return None
 
             def read(self):
-                return json.dumps({"choices": [{"message": {"content": "We open at nine."}}]}).encode()
+                content = json.dumps({"status": "answer", "answer": "We open at nine.", "source_ids": ["src-1"]})
+                return json.dumps({"choices": [{"message": {"content": content}}]}).encode()
 
         with patch("urllib.request.urlopen", return_value=Response()) as urlopen:
-            answer = complete_answer("When do you open?", [("Opening time?", "Nine o'clock")])
+            answer = complete_answer("When do you open?", self.sources)
 
-        self.assertEqual(answer, "We open at nine.")
+        self.assertEqual(answer, CompletionResult("answer", "We open at nine.", ("src-1",)))
         request = urlopen.call_args.args[0]
         payload = json.loads(request.data)
         self.assertEqual(payload["model"], "openrouter/free")
@@ -520,4 +525,4 @@ class OpenRouterTests(TestCase):
 
         with patch("urllib.request.urlopen", side_effect=urllib.error.URLError("offline")):
             with self.assertRaisesRegex(OpenRouterError, "could not produce"):
-                complete_answer("When do you open?", [("Opening time?", "Nine o'clock")])
+                complete_answer("When do you open?", self.sources)
