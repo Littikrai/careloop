@@ -104,6 +104,27 @@ class SafeQaAuthorityTests(TestCase):
         self.assertEqual(result.kind, "needs_clarification")
         self.assertEqual(result.sources, ())
 
+    def test_conflicting_product_sources_prompt_for_the_missing_model(self):
+        other = KnowledgeItem.objects.create(business=self.business, question="Router X600 speed?", answer="5 Gbps")
+        publish_item(other, embed_document=lambda text: [1.0], upsert_vector=lambda *args: None)
+
+        def complete(question, sources):
+            self.assertEqual(question, "What is the router speed?")
+            self.assertEqual([source["answer"] for source in sources], ["2.5 Gbps", "5 Gbps"])
+            self.assertEqual([source["authoritative"] for source in sources], [False, False])
+            return CompletionResult("needs_clarification", "Which router model, X500 or X600?", ())
+
+        result = answer_question(
+            self.business,
+            "What is the router speed?",
+            embed_query=lambda text: [1.0],
+            search_vectors=lambda *args: [(self.item.vector_id, 0.93), (other.vector_id, 0.91)],
+            complete=complete,
+        )
+        self.assertEqual(result.kind, "needs_clarification")
+        self.assertIn("X500 or X600", result.text)
+        self.assertEqual(result.sources, ())
+
     def test_publish_rejects_normalized_duplicate_without_changing_live_answer(self):
         draft = KnowledgeItem.objects.create(business=self.business, question="ROUTER  X500 SPEED?", answer="9 Gbps")
         with self.assertRaisesRegex(ValueError, "same normalized question"):

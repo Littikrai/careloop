@@ -98,6 +98,7 @@ def answer_question(
     search_vectors: SearchVectors | None = None,
     complete: Complete | None = None,
 ) -> AnswerResult:
+    # ponytail: scans published Q&A for exact Unicode matches; persist/index normalized questions if this grows large.
     published = list(KnowledgeItem.objects.filter(
         business=business,
         status=KnowledgeItem.Status.PUBLISHED,

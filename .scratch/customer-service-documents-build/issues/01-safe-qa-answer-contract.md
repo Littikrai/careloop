@@ -15,4 +15,4 @@
 
 ## Verification
 
-ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 62 รายการ โดยจำลองขอบ HTTP ของ OpenRouter; ยังไม่ได้ส่งคำขอจากโค้ดรุ่นนี้ไปยัง provider จริง
+ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม โดยจำลองขอบ HTTP ของ OpenRouter; ยังไม่ได้ส่งคำขอจากโค้ดรุ่นนี้ไปยัง provider จริง
