@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <div id="content-main">
+    <p>Business: <strong>{{ revision.document.business.name }}</strong></p>
+    <p>Document: <strong>{{ revision.title }}</strong> (revision {{ revision.revision_number }})</p>
+    {% if preview_error %}
+      <p class="errornote">Cannot preview chunks: {{ preview_error }}</p>
+    {% else %}
+      <p>{{ chunk_count }} chunks will be indexed before this Document becomes available in chat.</p>
+      <form method="post">{% csrf_token %}<input type="hidden" name="confirm" value="yes"><button type="submit">Confirm publish</button></form>
+    {% endif %}
+  </div>
+{% endblock %}

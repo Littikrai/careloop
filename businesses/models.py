@@ -208,6 +208,28 @@ class DocumentRevision(models.Model):
         return f"{self.title} (revision {self.revision_number})"
 
 
+class DocumentChunk(models.Model):
+    class IndexStatus(models.TextChoices):
+        PENDING = "pending", "Pending"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    revision = models.ForeignKey(DocumentRevision, on_delete=models.CASCADE, related_name="chunks")
+    order = models.PositiveIntegerField()
+    heading = models.TextField(blank=True)
+    text = models.TextField()
+    vector_id = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    index_status = models.CharField(max_length=16, choices=IndexStatus, default=IndexStatus.PENDING)
+
+    class Meta:
+        ordering = ["revision", "order"]
+        constraints = [models.UniqueConstraint(fields=["revision", "order"], name="unique_document_chunk_order")]
+
+    def __str__(self) -> str:
+        return f"{self.revision} · chunk {self.order}"
+
+
 class BusinessIntegration(models.Model):
     business = models.OneToOneField(Business, on_delete=models.CASCADE, related_name="integration")
     embed_token = models.CharField(max_length=64, unique=True, default=_new_embed_token)

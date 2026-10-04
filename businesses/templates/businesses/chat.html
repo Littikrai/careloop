@@ -18,5 +18,5 @@
     {% endif %}
   </section>
   <form class="composer" method="post">{% if not embedded %}{% csrf_token %}{% endif %}<div class="composer-field">{{ form.question.label_tag }}{{ form.question }}</div>{{ form.question.errors }}<button type="submit" aria-label="Send message">Send</button></form>
-  <p class="chat-note">Answers use this business's published Q&amp;A.</p>
+  <p class="chat-note">Answers use this business's published knowledge.</p>
 </main>{% if embedded %}<script>document.addEventListener("keydown", function (event) { if (event.key === "Escape") window.parent.postMessage({type: "customer-service-close"}, "*"); });</script>{% endif %}</body></html>

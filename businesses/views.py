@@ -15,7 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from .forms import ChatQuestionForm
-from .models import Business, BusinessApiKey, BusinessIntegration, KnowledgeItem
+from .models import Business, BusinessApiKey, BusinessIntegration, DocumentChunk, DocumentRevision, KnowledgeItem
 from .openrouter import OpenRouterError
 from .rag import AnswerResult, answer_question
 
@@ -118,6 +118,11 @@ def _render_chat(request: HttpRequest, business: Business, *, embedded: bool = F
         business=business,
         status=KnowledgeItem.Status.PUBLISHED,
         index_status=KnowledgeItem.IndexStatus.READY,
+    ).exists() or DocumentChunk.objects.filter(
+        revision__document__business=business,
+        revision__status=DocumentRevision.Status.PUBLISHED,
+        revision__index_status=DocumentRevision.IndexStatus.READY,
+        index_status=DocumentChunk.IndexStatus.READY,
     ).exists()
     if request.method == "POST" and form.is_valid():
         asked_question = form.cleaned_data["question"]

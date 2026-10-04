@@ -1,0 +1,13 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <div id="content-main">
+    <p>{{ revision.title }} (revision {{ revision.revision_number }})</p>
+    <form method="post">{% csrf_token %}{{ form.as_p }}<button type="submit">Test retrieval</button></form>
+    {% if error %}<p class="errornote">{{ error }}</p>{% endif %}
+    {% if matches is not None %}
+      {% if matches %}
+        <ol>{% for chunk, score in matches %}<li><strong>{{ chunk.revision.title }} · revision {{ chunk.revision.revision_number }} · {{ chunk.heading }}</strong> — similarity {{ score|floatformat:3 }}<pre style="white-space:pre-wrap">{{ chunk.text }}</pre></li>{% endfor %}</ol>
+      {% else %}<p>No published chunk matched this question.</p>{% endif %}
+    {% endif %}
+  </div>
+{% endblock %}

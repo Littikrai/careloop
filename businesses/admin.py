@@ -6,15 +6,16 @@ from django.contrib import messages
 from django import forms
 from django.conf import settings
 from django.core.exceptions import PermissionDenied
-from django.http import HttpRequest
-from django.shortcuts import redirect, render
+from django.http import Http404, HttpRequest
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 
 from .document_chunks import preview_chunks
 from .document_importer import DocumentImportError, import_document_json
-from .forms import DocumentDraftForm, DocumentImportForm, KnowledgeImportForm
+from .document_knowledge import publish_document, test_document_retrieval
+from .forms import ChatQuestionForm, DocumentDraftForm, DocumentImportForm, KnowledgeImportForm
 from .importer import KnowledgeImportError, import_qa_json
 from .models import Business, BusinessApiKey, BusinessIntegration, Document, DocumentRevision, KnowledgeItem
 from .rag import publish_item
@@ -231,6 +232,7 @@ class KnowledgeItemAdmin(admin.ModelAdmin):
 class DocumentRevisionAdmin(admin.ModelAdmin):
     form = DocumentDraftForm
     change_list_template = "admin/businesses/documentrevision/change_list.html"
+    change_form_template = "admin/businesses/documentrevision/change_form.html"
     list_display = ["title", "business_name", "product", "version", "revision_number", "status", "index_status", "updated_at"]
     list_filter = ["document__business", "status", "index_status"]
     search_fields = ["title", "product", "content"]
@@ -238,8 +240,55 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
     def get_urls(self):
         return [
             path("import-json/", self.admin_site.admin_view(self.import_json), name="businesses_documentrevision_import_json"),
+            path("<path:object_id>/publish/", self.admin_site.admin_view(self.publish_view), name="businesses_documentrevision_publish"),
+            path("<path:object_id>/test-retrieval/", self.admin_site.admin_view(self.test_retrieval_view), name="businesses_documentrevision_test_retrieval"),
             *super().get_urls(),
         ]
+
+    def publish_view(self, request: HttpRequest, object_id: str):
+        revision = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.has_change_permission(request, revision):
+            raise PermissionDenied
+        if revision.status != DocumentRevision.Status.DRAFT:
+            raise Http404
+        url = reverse("admin:businesses_documentrevision_change", args=[revision.pk])
+        if request.method == "POST" and request.POST.get("confirm") == "yes":
+            try:
+                count = publish_document(revision)
+            except Exception as error:
+                self.message_user(request, f"Could not publish Document: {error}", messages.ERROR)
+            else:
+                self.message_user(request, f"Published {count} chunk(s) at {revision.updated_at:%Y-%m-%d %H:%M}.", messages.SUCCESS)
+            return redirect(url)
+        try:
+            chunk_count = len(preview_chunks(revision))
+            preview_error = ""
+        except Exception as error:
+            chunk_count = 0
+            preview_error = str(error)
+        return render(request, "admin/businesses/documentrevision/publish.html", {
+            **self.admin_site.each_context(request), "title": "Publish Document", "revision": revision,
+            "chunk_count": chunk_count, "preview_error": preview_error,
+        })
+
+    def test_retrieval_view(self, request: HttpRequest, object_id: str):
+        revision = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not self.has_view_permission(request, revision):
+            raise PermissionDenied
+        if revision.status != DocumentRevision.Status.PUBLISHED:
+            raise Http404
+        form = ChatQuestionForm(request.POST or None)
+        matches = None
+        error = ""
+        if request.method == "POST" and form.is_valid():
+            try:
+                matches = test_document_retrieval(revision, form.cleaned_data["question"])
+            except Exception as cause:
+                error = str(cause)
+        return render(request, "admin/businesses/documentrevision/test_retrieval.html", {
+            **self.admin_site.each_context(request), "title": "Test retrieval", "revision": revision,
+            "form": form, "matches": matches, "error": error,
+        })
 
     def import_json(self, request: HttpRequest):
         if not self.has_add_permission(request):

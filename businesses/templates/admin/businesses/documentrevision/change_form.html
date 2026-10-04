@@ -1,0 +1,9 @@
+{% extends "admin/change_form.html" %}
+{% block object-tools-items %}
+  {% if original.status == "draft" %}
+    <li><a href="{% url 'admin:businesses_documentrevision_publish' original.pk %}">Publish Document</a></li>
+  {% elif original.status == "published" %}
+    <li><a href="{% url 'admin:businesses_documentrevision_test_retrieval' original.pk %}">Test retrieval</a></li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

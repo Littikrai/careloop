@@ -1,6 +1,6 @@
 # Customer Service Bot
 
-Self-hosted, multi-business customer support. Administrators create and publish Q&A, questions are embedded locally on CPU, Qdrant retrieves knowledge from the current business, and OpenRouter produces an answer from that knowledge.
+Self-hosted, multi-business customer support. Administrators create and publish Q&A or Documents, questions are embedded locally on CPU, Qdrant retrieves knowledge from the current business, and OpenRouter produces an answer from that knowledge.
 
 ## Install with Docker Compose
 
@@ -21,7 +21,7 @@ The first Docker startup downloads and warms the configured sentence-transformer
 
 To change a published Q&A, select it and choose **Create replacement drafts for selected Q&A**. Edit the resulting draft and publish it; customers keep receiving the old answer until the replacement is indexed. Use the standard **Delete** control and its confirmation page to remove a Q&A. A deleted item is excluded from future answers even if local vector cleanup is temporarily unavailable.
 
-Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published Q&A from that business. An exact question match after Unicode and whitespace normalization takes priority; semantic scores only choose candidate sources. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. Answers display a “Verified answer” source label. An unknown business URL returns 404. Use **Log out** to end the administrator session.
+Use **Open chat** on the business list to visit its public page. Visitors do not need an account. The bot retrieves only published, ready Q&A and Document chunks from that business. An exact Q&A question match after Unicode and whitespace normalization takes priority; semantic scores only choose candidate sources. If no result meets the similarity threshold, it does not call OpenRouter and reports that it lacks enough information. Answers show only the Q&A or Document sources actually cited by the model. An unknown business URL returns 404. Use **Log out** to end the administrator session.
 
 ## Import Q&A from JSON
 
@@ -35,7 +35,7 @@ Each item must contain exactly the question and answer strings. The importer tri
 
 ## Add document drafts
 
-Open **Documents → Add Document** in the admin, choose a business, then paste text or upload one UTF-8 `.txt`/`.md` file up to 256 KiB. A file name becomes the default title; you can also enter a title yourself. Product and version are optional. Save and open the draft to inspect its normalized text, character count, metadata, and ordered chunk preview. You can edit a draft. Document drafts are not searchable or used in chat yet; publishing and document-based answers are covered by later build tickets.
+Open **Documents → Add Document** in the admin, choose a business, then paste text or upload one UTF-8 `.txt`/`.md` file up to 256 KiB. A file name becomes the default title; you can also enter a title yourself. Product and version are optional. Save and open the draft to inspect its normalized text, character count, metadata, and ordered chunk preview. You can edit a draft. Use **Publish Document** on its page, confirm the business, title, and chunk count, and wait for indexing to finish. Only a **Published / Ready** revision can answer visitors. On that revision, **Test retrieval** shows matching chunks and scores without calling OpenRouter. A failed publish leaves the draft editable with an error; correct it and publish again. Document replacement and archive controls belong to later tickets.
 
 To add several documents at once, choose **Documents → Import Documents from JSON**, select the business, and upload a UTF-8 JSON array up to 5 MiB. Each object needs string `title` and `content`; string `product` and `version` are optional. See [the example import file](examples/document-import.example.json). The importer validates the whole file before saving anything, skips exact duplicates within the selected business, and shows the number created and skipped. Imported documents remain drafts; the JSON file cannot select a business or publish content.
 
@@ -58,7 +58,7 @@ Use **Create or rotate API key** on a Business integration, copy the one-time ke
       -H 'Content-Type: application/json' \
       --data '{"question":"When are you open?"}'
 
-A successful response has `answer`, `status` (`answer`, `needs_clarification`, or `insufficient_knowledge`), and `sources` (an array of public labels such as `{"type":"qa","label":"Verified answer"}`). Invalid or revoked keys return 401; malformed questions return 422; exhausted API-key rate limits return 429; RAG or LLM failures return 503. This endpoint deliberately has no CORS support, so do not put its API key in browser code. Use the widget for browser chat.
+A successful response has `answer`, `status` (`answer`, `needs_clarification`, or `insufficient_knowledge`), and `sources` (an array of public labels such as `{"type":"qa","label":"Verified answer"}` or Document title/heading/product/version). File names, raw chunks, similarity scores, and internal IDs are omitted. Invalid or revoked keys return 401; malformed questions return 422; exhausted API-key rate limits return 429; RAG or LLM failures return 503. This endpoint deliberately has no CORS support, so do not put its API key in browser code. Use the widget for browser chat.
 
 SQLite data, Qdrant vectors, and the downloaded embedding model live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
