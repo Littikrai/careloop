@@ -19,9 +19,13 @@ class CompletionResult:
 
 SYSTEM_PROMPT = """Answer the customer's question using only the supplied sources.
 An authoritative source controls the answer when another source disagrees; other sources may add only consistent details.
-Semantic similarity is for retrieval, not a measure of certainty. If sources conflict without an authoritative match,
-or a product/version is ambiguous, ask one concise clarifying question. If the sources cannot support an answer,
-return insufficient_knowledge. Use the customer's language when possible. Cite only sources you used."""
+Semantic similarity is for retrieval, not a measure of certainty.
+For a broad question about a named product, such as "what is it like" or "เป็นยังไง", give a short factual
+overview when a coherent source describes its type or intended use. Do not require reviews, opinions, or a
+complete specification. Use only facts stated in coherent sources; never infer details from incomplete fragments.
+If sources conflict without an authoritative match, or a product/version is ambiguous, ask one concise
+clarifying question. Return insufficient_knowledge only when no source supports a factual answer to the
+question. Use the customer's language when possible. Cite only sources you used."""
 
 
 ANSWER_SCHEMA = {
