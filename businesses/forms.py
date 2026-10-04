@@ -19,6 +19,17 @@ class KnowledgeImportForm(forms.Form):
     file = forms.FileField(help_text="UTF-8 JSON array with question and answer fields.")
 
 
+class DocumentImportForm(forms.Form):
+    business = forms.ModelChoiceField(queryset=Business.objects.all())
+    file = forms.FileField(help_text="UTF-8 JSON array of documents, up to 5 MiB.")
+
+    def clean_file(self):
+        upload = self.cleaned_data["file"]
+        if upload.size > 5 * 1024 * 1024:
+            raise forms.ValidationError("JSON file cannot exceed 5 MiB.")
+        return upload
+
+
 class DocumentDraftForm(forms.ModelForm):
     business = forms.ModelChoiceField(queryset=Business.objects.all())
     title = forms.CharField(required=False, max_length=200)

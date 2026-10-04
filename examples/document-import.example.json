@@ -1,0 +1,17 @@
+[
+  {
+    "title": "Router X500 specification",
+    "content": "## Performance\nWAN throughput: 2.5 Gbps\nWi-Fi: Wi-Fi 6\n\n## Ports\n| Port | Speed |\n| --- | --- |\n| WAN | 2.5 Gbps |\n| LAN | 1 Gbps |",
+    "product": "Router X500",
+    "version": "2026.1"
+  },
+  {
+    "title": "Shipping and returns",
+    "content": "## Shipping\nOrders ship within two business days.\n\n## Returns\nContact support within 30 days of delivery."
+  },
+  {
+    "title": "วิธีติดตั้งเราเตอร์ X500",
+    "content": "## เริ่มต้น\nเชื่อมต่อสายอินเทอร์เน็ตกับพอร์ต WAN แล้วเปิดเครื่อง\n\n## ตั้งค่า\nเชื่อมต่อเครือข่าย Wi-Fi ตามข้อมูลบนฉลากสินค้า",
+    "product": "Router X500"
+  }
+]

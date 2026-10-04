@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <div id="content-main">
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <p>Each document needs title and content. Product and version are optional. Exact duplicates in this business are skipped; invalid files change nothing.</p>
+      <input type="submit" value="Import drafts">
+    </form>
+  </div>
+{% endblock %}

@@ -37,6 +37,8 @@ Each item must contain exactly the question and answer strings. The importer tri
 
 Open **Documents → Add Document** in the admin, choose a business, then paste text or upload one UTF-8 `.txt`/`.md` file up to 256 KiB. A file name becomes the default title; you can also enter a title yourself. Product and version are optional. Save and open the draft to inspect its normalized text, character count, metadata, and ordered chunk preview. You can edit a draft. Document drafts are not searchable or used in chat yet; publishing and document-based answers are covered by later build tickets.
 
+To add several documents at once, choose **Documents → Import Documents from JSON**, select the business, and upload a UTF-8 JSON array up to 5 MiB. Each object needs string `title` and `content`; string `product` and `version` are optional. See [the example import file](examples/document-import.example.json). The importer validates the whole file before saving anything, skips exact duplicates within the selected business, and shows the number created and skipped. Imported documents remain drafts; the JSON file cannot select a business or publish content.
+
 ## Embed on a business website
 
 In the admin, add an entry under **Business integrations**, choose its business, and add one allowed website origin on each line. Use exact origins, for example https://shop.example and http://localhost:3000; paths and wildcards are not accepted. Open the saved integration to copy its widget tag:

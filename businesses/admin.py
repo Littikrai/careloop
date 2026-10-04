@@ -1,16 +1,20 @@
+from urllib.parse import urlencode
+
 from django.contrib import admin
 from django.contrib.auth.models import Group, User
 from django.contrib import messages
 from django import forms
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
-from django.urls import path
+from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 
 from .document_chunks import preview_chunks
-from .forms import DocumentDraftForm, KnowledgeImportForm
+from .document_importer import DocumentImportError, import_document_json
+from .forms import DocumentDraftForm, DocumentImportForm, KnowledgeImportForm
 from .importer import KnowledgeImportError, import_qa_json
 from .models import Business, BusinessApiKey, BusinessIntegration, Document, DocumentRevision, KnowledgeItem
 from .rag import publish_item
@@ -226,9 +230,41 @@ class KnowledgeItemAdmin(admin.ModelAdmin):
 @admin.register(DocumentRevision)
 class DocumentRevisionAdmin(admin.ModelAdmin):
     form = DocumentDraftForm
+    change_list_template = "admin/businesses/documentrevision/change_list.html"
     list_display = ["title", "business_name", "product", "version", "revision_number", "status", "index_status", "updated_at"]
     list_filter = ["document__business", "status", "index_status"]
     search_fields = ["title", "product", "content"]
+
+    def get_urls(self):
+        return [
+            path("import-json/", self.admin_site.admin_view(self.import_json), name="businesses_documentrevision_import_json"),
+            *super().get_urls(),
+        ]
+
+    def import_json(self, request: HttpRequest):
+        if not self.has_add_permission(request):
+            raise PermissionDenied
+        form = DocumentImportForm(request.POST or None, request.FILES or None)
+        if request.method == "POST" and form.is_valid():
+            upload = form.cleaned_data["file"]
+            business = form.cleaned_data["business"]
+            try:
+                result = import_document_json(business, upload.read(), source_name=upload.name)
+            except DocumentImportError as error:
+                form.add_error("file", str(error))
+            else:
+                self.message_user(
+                    request,
+                    f"Created {result.created} document draft(s); skipped {result.skipped} duplicate(s).",
+                    messages.SUCCESS,
+                )
+                query = urlencode({"document__business__id__exact": business.pk, "status__exact": "draft"})
+                return redirect(f"{reverse('admin:businesses_documentrevision_changelist')}?{query}")
+        return render(
+            request,
+            "admin/businesses/documentrevision/import_json.html",
+            {**self.admin_site.each_context(request), "form": form, "title": "Import Documents from JSON"},
+        )
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("document__business")
