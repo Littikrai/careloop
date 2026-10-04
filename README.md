@@ -114,7 +114,7 @@ Application tests and type checking run on macOS with Python 3.14. The Docker im
 
 ## Planning
 
-See [core release tickets](.scratch/customer-service-core-release/README.md), [future build tickets](.scratch/customer-service-build/README.md), and [domain language](CONTEXT.md). Feedback/insights and embedding-model reindexing remain future work.
+See [document knowledge build tickets](.scratch/customer-service-documents-build/README.md), [document knowledge decisions](.scratch/customer-service-documents/map.md), [core release tickets](.scratch/customer-service-core-release/README.md), [future build tickets](.scratch/customer-service-build/README.md), and [domain language](CONTEXT.md). Feedback/insights remain future work.
 
 ## License
 

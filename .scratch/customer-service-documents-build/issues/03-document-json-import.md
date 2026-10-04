@@ -1,0 +1,14 @@
+# 03: นำเข้า Document drafts จาก JSON
+
+**What to build:** แอดมินเลือกธุรกิจและนำเข้า JSON หลายเอกสารเป็น drafts ได้ในครั้งเดียว พร้อมผลสร้างและข้ามที่ชัดเจน โดยไฟล์ผิดไม่ทิ้งข้อมูลบางส่วน
+
+**Blocked by:** 02: เพิ่มและตรวจตัวอย่าง Document draft.
+
+**Status:** ready-for-agent
+
+- [ ] รับไฟล์ UTF-8 JSON array รวมไม่เกิน 5 MiB แต่ละรายการมี `title` และ `content` เป็น string ไม่ว่าง และมี `product`, `version` ได้โดยไม่รับ business ID จากไฟล์
+- [ ] ตรวจ schema, encoding, ขนาด content 256 KiB และทุกรายการก่อนเขียน; รายการหรือไฟล์ผิดทำให้ทั้ง import ล้มเหลวพร้อมตำแหน่งและเหตุผล
+- [ ] รายการที่ทุก field ซ้ำกันหลัง normalization ภายในไฟล์หรือกับธุรกิจเดียวกันถูกข้ามอย่าง idempotent; ชื่อเหมือนแต่ข้อมูลต่างสร้างคนละ Document และไม่แทนที่ของเดิมโดยอัตโนมัติ
+- [ ] Import ที่สำเร็จสร้าง Draft ทั้งชุดใน transaction เดียว ไม่ publish หรือสร้าง vectors และพากลับรายการ Draft ของธุรกิจพร้อมจำนวนสร้าง/ข้าม
+- [ ] มีไฟล์ตัวอย่าง JSON ที่ไม่มี secrets และทดสอบ success, duplicate, mixed invalid input, unknown/extra fields, oversized file/content และ business isolation
+
