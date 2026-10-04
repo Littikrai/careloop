@@ -16,10 +16,11 @@ Label: `wayfinder:map`
 - [กำหนดวงจรชีวิตเอกสารและส่วนข้อความ](issues/02-define-document-and-chunk-lifecycle.md): Published เดิมทำงานจน draft revision ใหม่สร้างทุก vector สำเร็จ แล้วสลับฉบับพร้อม archive ของเดิมในครั้งเดียว
 - [กำหนดสัญญาการค้นหาและตอบจากเอกสาร](issues/03-define-document-retrieval-contract.md): ค้น Q&A และส่วนข้อความเฉพาะฉบับใช้งาน จำกัด context ก่อนส่ง LLM ปฏิเสธเมื่อหลักฐานไม่พอ และคืนแหล่งอ้างอิงที่เปิดเผยได้
 - [กำหนดขั้นตอนแอดมินสำหรับเพิ่มความรู้](issues/04-define-admin-knowledge-workflow.md): ใช้เมนู Documents ใน Django Admin สำหรับเพิ่มหรือ import draft, preview chunks, publish ทีละเอกสาร, ทดสอบ retrieval และแทนที่หรือ archive อย่างปลอดภัย
-- [กำหนดบทบาท Q&A เดิมร่วมกับเอกสาร](issues/05-define-qa-compatibility.md): เก็บ Q&A เดิมโดยไม่ migration และให้เฉพาะคำถามที่ตรงหรือมี score สูงถึง override threshold มีสิทธิ์เหนือเอกสารที่ขัดกัน
+- [กำหนดบทบาท Q&A เดิมร่วมกับเอกสาร](issues/05-define-qa-compatibility.md): เก็บ Q&A เดิมโดยไม่ migration และใช้ร่วมกับเอกสาร โดย Q&A จะมีอำนาจเหนือกว่าเฉพาะ exact normalized match
 - [กำหนดขนาดส่วนข้อความตามข้อจำกัด embedding model](issues/06-align-chunks-with-embedding-limit.md): แบ่งด้วย tokenizer ภายใน model limit, สงวน metadata budget และใช้ generation ใหม่สำหรับ reindex เมื่อเปลี่ยนโมเดล
 - [กำหนดสัญญาผลลัพธ์ LLM ข้ามโมเดล OpenRouter](issues/08-define-openrouter-output-contract.md): บังคับ JSON Schema และ provider compatibility, ปิด reasoning และตรวจ source IDs; free router ใช้ทดลองได้แต่แนะนำ model คงที่สำหรับงานจริง
 - [กำหนดวิธีทำดัชนีโดยไม่หยุดบริการแชต](issues/07-keep-chat-responsive-during-indexing.md): ใช้ Gunicorn process เดียวแบบ gthread, serialize local Qdrant และ embedding เป็น batch พร้อม lease-based retry โดย Published เดิมยังตอบได้
+- [กำหนดอำนาจ Q&A โดยไม่ใช้ similarity เป็นความมั่นใจ](issues/09-define-safe-qa-authority.md): ให้ Q&A override เฉพาะ exact normalized match; semantic score ใช้ค้นและจัดอันดับเท่านั้น และข้อมูลขัดกันต้องถามเพิ่มหรือปฏิเสธ
 
 ## Not yet specified
 
