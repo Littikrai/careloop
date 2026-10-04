@@ -12,3 +12,7 @@
 - [x] Chunker แบ่งตาม heading/ย่อหน้าแล้วใช้ tokenizer ของ embedding model, สงวน token budget สำหรับ metadata และ special tokens, overlap ตามสเปก และปฏิเสธ chunk ที่เกิน model limit แทนการปล่อยให้ถูก truncate
 - [x] Draft แก้ไขได้ ส่วน Published/Archived ที่จะเพิ่มภายหลังต้องรองรับการเป็น read-only โดยโครงสร้างข้อมูลไม่ต้องย้าย Document เดิมใหม่
 - [x] ทดสอบข้อความไทย/อังกฤษ, heading/list/Markdown table, metadata ยาว, token window ยาวเกินหนึ่ง chunk, upload ผิดชนิด/encoding/ขนาด และการแยกธุรกิจ
+
+## Verification
+
+ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 72 รายการ ทดสอบ chunk preview กับ tokenizer ของ embedding model จริงโดยทุก chunk อยู่ภายใน model limit และยืนยันว่า preview ไม่สร้าง vector

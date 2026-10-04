@@ -19,7 +19,7 @@ class PreviewChunk:
 
 
 def _offsets(tokenizer: Any, text: str) -> list[tuple[int, int]]:
-    encoded = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True)
+    encoded = tokenizer(text, add_special_tokens=False, return_offsets_mapping=True, verbose=False)
     offsets = [(int(start), int(end)) for start, end in encoded["offset_mapping"]]
     if len(offsets) != len(encoded["input_ids"]) or any(end <= start for start, end in offsets):
         raise ValueError("The embedding tokenizer must provide valid token offsets for document preview.")
@@ -79,6 +79,8 @@ def preview_chunks(
         raise ValueError("The embedding model token limit is too small for document chunks.")
 
     chunks: list[PreviewChunk] = []
+    previous_body = ""
+    previous_offsets: list[tuple[int, int]] = []
     for heading, body in _sections(revision.content):
         prefix = _metadata_prefix(revision, heading, tokenizer, min(32, limit // 4))
         body_budget = limit - special_tokens - len(tokenizer.encode(prefix, add_special_tokens=False))
@@ -88,16 +90,25 @@ def preview_chunks(
         offsets = _offsets(tokenizer, body)
         if not offsets:
             continue
+        carry = (
+            previous_body[previous_offsets[max(0, len(previous_offsets) - overlap)][0]:previous_offsets[-1][1]]
+            if previous_offsets and overlap else ""
+        )
         token_ends = [end for _, end in offsets]
         paragraph_ends = [bisect_right(token_ends, match.start()) for match in re.finditer(r"\n[ \t]*\n", body)]
         start = 0
+        previous_end = 0
         while start < len(offsets):
-            end = min(start + body_budget, len(offsets))
-            boundaries = [boundary for boundary in paragraph_ends if start + body_budget // 2 <= boundary <= end]
-            if boundaries:
-                end = boundaries[-1]
+            leading = carry if start == 0 else ""
+            leading_tokens = len(tokenizer.encode(leading, add_special_tokens=False)) if leading else 0
+            end = min(start + body_budget - leading_tokens, len(offsets))
+            boundary_index = bisect_right(paragraph_ends, end) - 1
+            if boundary_index >= 0 and paragraph_ends[boundary_index] > max(start, previous_end):
+                end = paragraph_ends[boundary_index]
             while end > start:
                 text = body[offsets[start][0]:offsets[end - 1][1]]
+                if leading:
+                    text = f"{leading}\n{text}"
                 embedding_text = f"{prefix}\n{text}" if prefix else text
                 token_count = len(tokenizer.encode(embedding_text, add_special_tokens=True))
                 if token_count <= limit:
@@ -108,7 +119,9 @@ def preview_chunks(
             chunks.append(PreviewChunk(len(chunks) + 1, heading, text, embedding_text, token_count))
             if end == len(offsets):
                 break
+            previous_end = end
             start = max(start + 1, end - overlap)
+        previous_body, previous_offsets = body, offsets
     if not chunks:
         raise ValueError("Document content has no indexable text.")
     return chunks

@@ -9,7 +9,7 @@ from .document_chunks import preview_chunks
 
 
 class CharacterTokenizer:
-    def __call__(self, text, *, add_special_tokens=False, return_offsets_mapping=False):
+    def __call__(self, text, *, add_special_tokens=False, return_offsets_mapping=False, verbose=True):
         offsets = [(index, index + 1) for index, char in enumerate(text) if not char.isspace()]
         return {"input_ids": [ord(text[start]) for start, _ in offsets], "offset_mapping": offsets}
 
@@ -132,6 +132,28 @@ class DocumentAdminTests(TestCase):
 
 
 class ChunkPreviewTests(TestCase):
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48)
+    def test_overlap_carries_across_headings_in_one_document(self):
+        document = Document.objects.create(business=Business.objects.create(name="Router shop"))
+        revision = DocumentRevision.objects.create(
+            document=document, title="M", content="A" * 30 + "\n# Second\n" + "B" * 20,
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=48)
+        second = next(chunk for chunk in chunks if chunk.heading == "Second")
+        self.assertRegex(second.text, r"^A{6}\nB")
+        self.assertIn("B" * 20, second.text)
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48)
+    def test_short_paragraph_does_not_split_a_following_paragraph_that_fits(self):
+        document = Document.objects.create(business=Business.objects.create(name="Router shop"))
+        revision = DocumentRevision.objects.create(
+            document=document, title="M", content="Short para\n\n" + "x" * 31,
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=48)
+        self.assertEqual(len(chunks), 2)
+        self.assertEqual(chunks[0].text, "Short para")
+        self.assertIn("x" * 31, chunks[1].text)
+
     @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48)
     def test_long_mixed_language_content_uses_token_windows_without_truncation(self):
         document = Document.objects.create(business=Business.objects.create(name="Router shop"))
