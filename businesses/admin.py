@@ -6,12 +6,13 @@ from django.conf import settings
 from django.http import HttpRequest
 from django.shortcuts import redirect, render
 from django.urls import path
-from django.utils.html import format_html
+from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 
-from .forms import KnowledgeImportForm
+from .document_chunks import preview_chunks
+from .forms import DocumentDraftForm, KnowledgeImportForm
 from .importer import KnowledgeImportError, import_qa_json
-from .models import Business, BusinessApiKey, BusinessIntegration, KnowledgeItem
+from .models import Business, BusinessApiKey, BusinessIntegration, Document, DocumentRevision, KnowledgeItem
 from .rag import publish_item
 from .vector_store import delete_vector
 
@@ -220,3 +221,69 @@ class KnowledgeItemAdmin(admin.ModelAdmin):
                 "The Q&A was deleted. Its stale search vector will be ignored and can be cleaned up later.",
                 messages.WARNING,
             )
+
+
+@admin.register(DocumentRevision)
+class DocumentRevisionAdmin(admin.ModelAdmin):
+    form = DocumentDraftForm
+    list_display = ["title", "business_name", "product", "version", "revision_number", "status", "index_status", "updated_at"]
+    list_filter = ["document__business", "status", "index_status"]
+    search_fields = ["title", "product", "content"]
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related("document__business")
+
+    def get_fields(self, request, obj=None):
+        if obj is None:
+            return ["business", "title", "content", "upload", "product", "version"]
+        return [
+            "business_name", "title", "content", "product", "version", "source_name",
+            "revision_number", "status", "index_status", "index_error", "character_count", "chunk_preview",
+        ]
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj is None:
+            return []
+        fields = [
+            "business_name", "source_name", "revision_number", "status", "index_status",
+            "index_error", "character_count", "chunk_preview",
+        ]
+        if obj.status != DocumentRevision.Status.DRAFT:
+            fields += ["title", "content", "product", "version"]
+        return fields
+
+    def has_change_permission(self, request, obj=None) -> bool:
+        return obj is None or obj.status == DocumentRevision.Status.DRAFT
+
+    def has_delete_permission(self, request, obj=None) -> bool:
+        return False
+
+    def save_model(self, request, obj: DocumentRevision, form, change: bool) -> None:
+        if not change:
+            obj.document = Document.objects.create(business=form.cleaned_data["business"])
+            obj.revision_number = 1
+        if form.cleaned_data.get("upload"):
+            obj.source_name = form.cleaned_data["upload"].name
+        obj.save()
+
+    @admin.display(description="Business")
+    def business_name(self, obj: DocumentRevision) -> str:
+        return obj.document.business.name
+
+    @admin.display(description="Character count")
+    def character_count(self, obj: DocumentRevision) -> str:
+        return f"{len(obj.content)} characters"
+
+    @admin.display(description="Chunk preview")
+    def chunk_preview(self, obj: DocumentRevision):
+        try:
+            chunks = preview_chunks(obj)
+        except ValueError as error:
+            return f"Preview unavailable: {error}"
+        except Exception:
+            return "Preview unavailable. Check the embedding model configuration."
+        rows = ((chunk.order, chunk.heading or "No heading", chunk.token_count, chunk.text) for chunk in chunks)
+        return format_html(
+            "<ol>{}</ol>",
+            format_html_join("", '<li><strong>Chunk {} · {} · {} tokens</strong><pre style="white-space:pre-wrap">{}</pre></li>', rows),
+        )

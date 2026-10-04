@@ -58,6 +58,7 @@ EMBEDDING_MODEL = os.environ.get(
     "EMBEDDING_MODEL",
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 )
+DOCUMENT_CHUNK_MAX_TOKENS = int(os.environ.get("DOCUMENT_CHUNK_MAX_TOKENS", "256"))
 QDRANT_PATH = os.environ.get("QDRANT_PATH", str(DATA_DIR / "qdrant"))
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/free")

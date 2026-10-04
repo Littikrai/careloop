@@ -40,6 +40,11 @@ def _model():
     return _embedding_models[model_name]
 
 
+def embedding_tokenizer():
+    model = _model()
+    return model.tokenizer, int(model.max_seq_length)
+
+
 def _embed(text: str) -> list[float]:
     vector = _model().encode(text, normalize_embeddings=True)
     return [float(value) for value in vector]

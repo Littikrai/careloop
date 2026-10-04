@@ -134,6 +134,80 @@ class KnowledgeItem(models.Model):
         return self.question
 
 
+class Document(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    business = models.ForeignKey(Business, on_delete=models.CASCADE, related_name="documents")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self) -> str:
+        return f"Document for {self.business}"
+
+
+class DocumentRevision(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PUBLISHED = "published", "Published"
+        ARCHIVED = "archived", "Archived"
+
+    class IndexStatus(models.TextChoices):
+        NOT_INDEXED = "not_indexed", "Not indexed"
+        PENDING = "pending", "Pending"
+        READY = "ready", "Ready"
+        FAILED = "failed", "Failed"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="revisions")
+    revision_number = models.PositiveIntegerField(default=1)
+    title = models.CharField(max_length=200)
+    content = models.TextField()
+    product = models.CharField(max_length=120, blank=True)
+    version = models.CharField(max_length=120, blank=True)
+    source_name = models.CharField(max_length=255, blank=True)
+    status = models.CharField(max_length=16, choices=Status, default=Status.DRAFT)
+    index_status = models.CharField(max_length=16, choices=IndexStatus, default=IndexStatus.NOT_INDEXED)
+    index_error = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["document__business__name", "title", "revision_number"]
+        verbose_name = "Document"
+        verbose_name_plural = "Documents"
+        constraints = [
+            models.UniqueConstraint(fields=["document", "revision_number"], name="unique_document_revision_number"),
+            models.UniqueConstraint(fields=["document"], condition=Q(status="draft"), name="one_document_draft"),
+            models.UniqueConstraint(fields=["document"], condition=Q(status="published"), name="one_document_published"),
+        ]
+
+    def clean(self) -> None:
+        self.title = unicodedata.normalize("NFC", self.title.strip())
+        self.product = unicodedata.normalize("NFC", self.product.strip())
+        self.version = unicodedata.normalize("NFC", self.version.strip())
+        self.content = unicodedata.normalize("NFC", self.content.replace("\r\n", "\n").replace("\r", "\n").strip())
+        errors = {}
+        if not self.title:
+            errors["title"] = "Title cannot be empty."
+        if not self.content:
+            errors["content"] = "Content cannot be empty."
+        else:
+            try:
+                size = len(self.content.encode("utf-8"))
+            except UnicodeEncodeError:
+                errors["content"] = "Content must be valid Unicode text."
+            else:
+                if size > 256 * 1024:
+                    errors["content"] = "Content cannot exceed 256 KiB of UTF-8 text."
+        if errors:
+            raise ValidationError(errors)
+
+    def save(self, *args, **kwargs) -> None:
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        return f"{self.title} (revision {self.revision_number})"
+
+
 class BusinessIntegration(models.Model):
     business = models.OneToOneField(Business, on_delete=models.CASCADE, related_name="integration")
     embed_token = models.CharField(max_length=64, unique=True, default=_new_embed_token)

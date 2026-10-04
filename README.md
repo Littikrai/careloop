@@ -33,6 +33,10 @@ On the **Businesses** list, select **Import Q&A from JSON**, choose the target b
 
 Each item must contain exactly the question and answer strings. The importer trims text and normalizes Unicode. It validates the complete file before changing data, skips duplicate pairs, and rejects the entire file if a question conflicts with an existing answer. Imported entries are drafts; select them in **Q&A** and use **Publish selected Q&A** before the bot can answer from them.
 
+## Add document drafts
+
+Open **Documents → Add Document** in the admin, choose a business, then paste text or upload one UTF-8 `.txt`/`.md` file up to 256 KiB. A file name becomes the default title; you can also enter a title yourself. Product and version are optional. Save and open the draft to inspect its normalized text, character count, metadata, and ordered chunk preview. You can edit a draft. Document drafts are not searchable or used in chat yet; publishing and document-based answers are covered by later build tickets.
+
 ## Embed on a business website
 
 In the admin, add an entry under **Business integrations**, choose its business, and add one allowed website origin on each line. Use exact origins, for example https://shop.example and http://localhost:3000; paths and wildcards are not accepted. Open the saved integration to copy its widget tag:
@@ -71,6 +75,7 @@ The published port binds to the local machine only. Before exposing the service 
 | `OPENROUTER_API_KEY` | Required server-side key for generated answers |
 | `OPENROUTER_MODEL` | OpenRouter model slug; defaults to `openrouter/free` for trials. Use a fixed compatible model for predictable production answers. |
 | `EMBEDDING_MODEL` | sentence-transformers model; changing it requires reindexing in a later ticket |
+| `DOCUMENT_CHUNK_MAX_TOKENS` | Upper bound for document preview chunks; defaults to `256` and is capped by the embedding model's sequence limit |
 | `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
 | `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Questions per client IP and business; defaults to `30` |
