@@ -62,6 +62,9 @@ class DocumentImportTests(TestCase):
             ({"title": "x" * 201, "content": "Good"}, "title"),
             ({"title": "Long product", "content": "Good", "product": "x" * 121}, "product"),
             ({"title": "Bad Unicode", "content": "\ud800"}, "Unicode"),
+            ({"title": "\ud800", "content": "Good"}, "title"),
+            ({"title": "Bad product", "content": "Good", "product": "\ud800"}, "product"),
+            ({"title": "Bad version", "content": "Good", "version": "\ud800"}, "version"),
         ]
         for bad, reason in bad_items:
             with self.subTest(reason=reason):
@@ -77,6 +80,19 @@ class DocumentImportTests(TestCase):
             with self.subTest(content=content[:15]):
                 with self.assertRaises(DocumentImportError):
                     import_document_json(self.business, content)
+                self.assertFalse(Document.objects.exists())
+
+    def test_invalid_json_and_utf8_report_file_position_and_reason(self):
+        cases = [
+            (b'[{"title": "A",\n"content": }]', ("line 2", "column", "Expecting value")),
+            (b'[{"title": "A", "content": "\xff"}]', ("byte", "invalid")),
+        ]
+        for content, details in cases:
+            with self.subTest(content=content):
+                with self.assertRaises(DocumentImportError) as caught:
+                    import_document_json(self.business, content)
+                for detail in details:
+                    self.assertIn(detail, str(caught.exception))
                 self.assertFalse(Document.objects.exists())
 
     def test_database_failure_rolls_back_all_documents(self):

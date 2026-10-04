@@ -6,6 +6,8 @@ from django.db import transaction
 
 from .models import Business, Document, DocumentRevision
 
+MAX_DOCUMENT_IMPORT_BYTES = 5 * 1024 * 1024
+
 
 class DocumentImportError(ValueError):
     pass
@@ -18,14 +20,28 @@ class DocumentImportResult:
 
 
 def import_document_json(business: Business, content: bytes, *, source_name: str = "") -> DocumentImportResult:
-    if len(content) > 5 * 1024 * 1024:
+    if len(content) > MAX_DOCUMENT_IMPORT_BYTES:
         raise DocumentImportError("JSON file cannot exceed 5 MiB.")
     try:
-        payload = json.loads(content.decode("utf-8-sig"))
-    except (UnicodeDecodeError, ValueError, RecursionError):
+        decoded = content.decode("utf-8-sig")
+    except UnicodeDecodeError as error:
+        raise DocumentImportError(f"Invalid UTF-8 at byte {error.start + 1}: {error.reason}.") from None
+    try:
+        payload = json.loads(decoded)
+    except json.JSONDecodeError as error:
+        raise DocumentImportError(
+            f"Invalid JSON at line {error.lineno}, column {error.colno}: {error.msg}."
+        ) from None
+    except (ValueError, RecursionError):
         raise DocumentImportError("File must be a UTF-8 JSON array.") from None
     if not isinstance(payload, list) or not payload:
         raise DocumentImportError("File must contain a nonempty JSON array.")
+    try:
+        source_name.encode("utf-8")
+    except UnicodeEncodeError:
+        raise DocumentImportError("File name must be valid Unicode text.") from None
+    if len(source_name) > 255:
+        raise DocumentImportError("File name cannot exceed 255 characters.")
 
     normalized: list[tuple[str, str, str, str]] = []
     allowed = {"title", "content", "product", "version"}
@@ -37,9 +53,13 @@ def import_document_json(business: Business, content: bytes, *, source_name: str
         if missing or extra:
             details = ", ".join(sorted(missing | extra))
             raise DocumentImportError(f"Item {index} has missing or unsupported field(s): {details}.")
-        if any(not isinstance(value, str) for value in item.values()):
-            field = next(name for name, value in item.items() if not isinstance(value, str))
-            raise DocumentImportError(f"Item {index} {field} must be a string.")
+        for field, value in item.items():
+            if not isinstance(value, str):
+                raise DocumentImportError(f"Item {index} {field} must be a string.")
+            try:
+                value.encode("utf-8")
+            except UnicodeEncodeError:
+                raise DocumentImportError(f"Item {index} {field} must be valid Unicode text.") from None
         revision = DocumentRevision(
             title=item["title"], content=item["content"],
             product=item.get("product", ""), version=item.get("version", ""),

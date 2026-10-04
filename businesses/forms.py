@@ -2,6 +2,7 @@ from pathlib import Path
 
 from django import forms
 
+from .document_importer import MAX_DOCUMENT_IMPORT_BYTES
 from .models import Business, DocumentRevision
 
 
@@ -25,7 +26,7 @@ class DocumentImportForm(forms.Form):
 
     def clean_file(self):
         upload = self.cleaned_data["file"]
-        if upload.size > 5 * 1024 * 1024:
+        if upload.size > MAX_DOCUMENT_IMPORT_BYTES:
             raise forms.ValidationError("JSON file cannot exceed 5 MiB.")
         return upload
 

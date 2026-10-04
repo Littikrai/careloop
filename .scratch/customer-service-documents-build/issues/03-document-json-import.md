@@ -14,4 +14,4 @@
 
 ## Verification
 
-ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 79 รายการ ทดสอบนำเข้าไฟล์ตัวอย่างจริง และยืนยันว่า import ไม่เรียก embedding หรือสร้าง vectors
+ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 80 รายการ ทดสอบนำเข้าไฟล์ตัวอย่างจริง, ข้อผิดพลาดพร้อมตำแหน่ง, Unicode ที่ผิดในทุก field และยืนยันว่า import ไม่เรียก embedding หรือสร้าง vectors
