@@ -25,7 +25,7 @@ Resolution: รุ่นแรกเพิ่มเมนู Documents แยก
 ### การตรวจและเผยแพร่
 
 - หน้า Draft แสดงเนื้อหาที่ normalize แล้ว metadata จำนวนตัวอักษร และ preview ของส่วนข้อความตามลำดับก่อน publish โดย preview ยังไม่สร้าง vector
-- ปุ่ม Publish มีหน้ารับรองชื่อธุรกิจ ชื่อเอกสาร และจำนวนส่วนข้อความ แล้วประมวลผลทีละเอกสารแบบ synchronous พร้อม batch embeddings เพื่อคง Docker Compose เดิมที่ใช้ SQLite, Qdrant local และ web process เดียว
+- ปุ่ม Publish มีหน้ารับรองชื่อธุรกิจ ชื่อเอกสาร และจำนวนส่วนข้อความ แล้วประมวลผลทีละเอกสารแบบ synchronous พร้อม batch embeddings โดยรายละเอียดการคง chat ให้บริการ, เพดาน 256 chunks, timeout และ retry อยู่ใน [กำหนดวิธีทำดัชนีโดยไม่หยุดบริการแชต](07-keep-chat-responsive-during-indexing.md)
 - การนำเข้าหลายเอกสารไม่ publish อัตโนมัติ และรุ่นแรกไม่มี bulk publish เพื่อไม่ให้คำขอเดียวผูก web process นานเกินไป
 - เมื่อสำเร็จ Admin แสดงจำนวนส่วนข้อความและเวลาเผยแพร่ เมื่อไม่สำเร็จยังคงเป็น Draft/Failed พร้อมข้อความผิดพลาดที่อ่านได้และปุ่ม Retry publish โดย Published revision เดิมไม่เปลี่ยน
 - หน้า Published มีช่อง Test retrieval ให้พิมพ์คำถามและดูส่วนข้อความที่ค้นได้ ชื่อ revision และ similarity score โดยไม่ต้องเรียก OpenRouter

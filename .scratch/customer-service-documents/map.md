@@ -19,6 +19,7 @@ Label: `wayfinder:map`
 - [กำหนดบทบาท Q&A เดิมร่วมกับเอกสาร](issues/05-define-qa-compatibility.md): เก็บ Q&A เดิมโดยไม่ migration และให้เฉพาะคำถามที่ตรงหรือมี score สูงถึง override threshold มีสิทธิ์เหนือเอกสารที่ขัดกัน
 - [กำหนดขนาดส่วนข้อความตามข้อจำกัด embedding model](issues/06-align-chunks-with-embedding-limit.md): แบ่งด้วย tokenizer ภายใน model limit, สงวน metadata budget และใช้ generation ใหม่สำหรับ reindex เมื่อเปลี่ยนโมเดล
 - [กำหนดสัญญาผลลัพธ์ LLM ข้ามโมเดล OpenRouter](issues/08-define-openrouter-output-contract.md): บังคับ JSON Schema และ provider compatibility, ปิด reasoning และตรวจ source IDs; free router ใช้ทดลองได้แต่แนะนำ model คงที่สำหรับงานจริง
+- [กำหนดวิธีทำดัชนีโดยไม่หยุดบริการแชต](issues/07-keep-chat-responsive-during-indexing.md): ใช้ Gunicorn process เดียวแบบ gthread, serialize local Qdrant และ embedding เป็น batch พร้อม lease-based retry โดย Published เดิมยังตอบได้
 
 ## Not yet specified
 
