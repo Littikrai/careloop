@@ -15,4 +15,4 @@
 
 ## Verification
 
-ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 93 รายการ รวมการเผยแพร่/ลองใหม่, Qdrant local, แชต/widget/API, อ้างอิงเฉพาะแหล่งที่ใช้ และการแยกธุรกิจ
+ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 94 รายการ รวมการเผยแพร่/ลองใหม่, Qdrant local, แชต/widget/API, อ้างอิงเฉพาะแหล่งที่ใช้ และการแยกธุรกิจ

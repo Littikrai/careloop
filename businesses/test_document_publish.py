@@ -142,22 +142,33 @@ class DocumentRetrievalTests(TestCase):
             business=self.business, question="X500 speed?", answer="2.5 Gbps",
             status=KnowledgeItem.Status.PUBLISHED, index_status=KnowledgeItem.IndexStatus.READY,
         )
+        supporting = KnowledgeItem.objects.create(
+            business=self.business, question="X500 WAN details?", answer="Four LAN ports",
+            status=KnowledgeItem.Status.PUBLISHED, index_status=KnowledgeItem.IndexStatus.READY,
+        )
         embedded = []
 
         def complete(question, sources):
             self.assertEqual(sources[0]["type"], "qa")
             self.assertTrue(sources[0]["authoritative"])
-            self.assertEqual(sources[1]["type"], "document")
+            self.assertEqual({source["type"] for source in sources[1:]}, {"qa", "document"})
+            self.assertFalse(sources[1]["authoritative"])
             return CompletionResult("answer", "2.5 Gbps", (str(sources[0]["id"]),))
 
         def embed(text):
             embedded.append(text)
             return [1.0]
 
+        def search(business, vector, limit, threshold, ids):
+            if limit == 3:
+                self.assertIn(supporting.vector_id, ids)
+                return [(supporting.vector_id, 0.85), (qa.vector_id, 0.8)]
+            return [(self.chunk.vector_id, 0.8)]
+
         result = answer_question(
             self.business, " X500   SPEED? ",
             embed_query=embed,
-            search_vectors=lambda business, vector, limit, threshold, ids: [(self.chunk.vector_id, 0.8)],
+            search_vectors=search,
             complete=complete,
         )
         self.assertEqual(len(embedded), 1)
@@ -302,6 +313,30 @@ class DocumentRetrievalTests(TestCase):
             ], complete=complete,
         )
         self.assertEqual(result.text, "Four LAN ports")
+
+    def test_common_sentence_in_different_documents_is_not_trimmed(self):
+        self.chunk.text = "General installation guidance. Unique router information."
+        self.chunk.save(update_fields=["text"])
+        another_revision = DocumentRevision.objects.create(
+            document=Document.objects.create(business=self.business), title="Service manual",
+            product="X500", version="2026", content="Unique router information. Service warranty terms.",
+            status=DocumentRevision.Status.PUBLISHED, index_status=DocumentRevision.IndexStatus.READY,
+        )
+        another_chunk = DocumentChunk.objects.create(
+            revision=another_revision, order=1, text="Unique router information. Service warranty terms.",
+            index_status=DocumentChunk.IndexStatus.READY,
+        )
+
+        def complete(question, sources):
+            self.assertEqual(sources[1]["text"], another_chunk.text)
+            return CompletionResult("answer", "Service warranty terms.", (str(sources[1]["id"]),))
+
+        answer_question(
+            self.business, "Service warranty?", embed_query=lambda text: [1.0],
+            search_vectors=lambda business, vector, limit, threshold, ids: [
+                (self.chunk.vector_id, 0.9), (another_chunk.vector_id, 0.8)
+            ], complete=complete,
+        )
 
     def test_oversized_context_is_not_sent_to_openrouter(self):
         qa = KnowledgeItem.objects.create(

@@ -8,8 +8,8 @@ from uuid import UUID
 from django.conf import settings
 from django.db import transaction
 
-from .document_knowledge import search_document_chunks
-from .models import Business, DocumentChunk, DocumentRevision, KnowledgeItem
+from .document_knowledge import active_document_chunks, search_document_chunks
+from .models import Business, DocumentChunk, KnowledgeItem
 from .openrouter import CompletionResult
 
 Embedding = list[float]
@@ -120,12 +120,7 @@ def answer_question(
         status=KnowledgeItem.Status.PUBLISHED,
         index_status=KnowledgeItem.IndexStatus.READY,
     ))
-    has_documents = DocumentChunk.objects.filter(
-        revision__document__business=business,
-        revision__status=DocumentRevision.Status.PUBLISHED,
-        revision__index_status=DocumentRevision.IndexStatus.READY,
-        index_status=DocumentChunk.IndexStatus.READY,
-    ).exists()
+    has_documents = active_document_chunks(business).exists()
     if not published and not has_documents:
         return AnswerResult("insufficient_knowledge", settings.RAG_INSUFFICIENT_MESSAGE)
 
@@ -148,14 +143,15 @@ def answer_question(
             embed_query = embed_query or default_embed
             search_vectors = search_vectors or default_search
         vector = embed_query(question)
-        if not exact and published:
+        if published:
             by_vector_id = {item.vector_id: item for item in published}
             active_vector_ids = [item.vector_id for item in published if item.vector_id is not None]
             search_results = search_vectors(
                 business, vector, min(settings.RAG_TOP_K, 3), settings.RAG_SCORE_THRESHOLD, active_vector_ids
             )
             ranked.extend(
-                (score, "qa", by_vector_id[item_id]) for item_id, score in search_results if item_id in by_vector_id
+                (score, "qa", by_vector_id[item_id]) for item_id, score in search_results
+                if item_id in by_vector_id and by_vector_id[item_id] not in exact
             )
         if has_documents:
             ranked.extend(
@@ -169,7 +165,7 @@ def answer_question(
     sources: list[dict[str, str | bool]] = []
     public_sources: dict[str, dict[str, str]] = {}
     seen_texts: set[str] = set()
-    selected_document_texts: dict[tuple[str, str], list[str]] = {}
+    selected_document_texts: dict[UUID, list[str]] = {}
     for score, kind, item in sorted(ranked, key=lambda match: match[0], reverse=True):
         if len(sources) >= 6:
             break
@@ -185,7 +181,7 @@ def answer_question(
         else:
             assert isinstance(item, DocumentChunk)
             revision = item.revision
-            document_group = (normalise_question(revision.product), normalise_question(revision.version))
+            document_group = revision.id
             document_text = _without_repeated_document_text(
                 item.text, selected_document_texts.get(document_group, [])
             )

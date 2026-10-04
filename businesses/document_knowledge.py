@@ -4,6 +4,7 @@ from uuid import UUID
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import QuerySet
 
 from .document_chunks import preview_chunks
 from .models import Business, DocumentChunk, DocumentRevision
@@ -13,6 +14,15 @@ from .vector_store import search_vectors as default_search_vectors
 from .vector_store import upsert_vector as default_upsert_vector
 
 _publish_lock = threading.Lock()
+
+
+def active_document_chunks(business: Business) -> QuerySet[DocumentChunk]:
+    return DocumentChunk.objects.select_related("revision").filter(
+        revision__document__business=business,
+        revision__status=DocumentRevision.Status.PUBLISHED,
+        revision__index_status=DocumentRevision.IndexStatus.READY,
+        index_status=DocumentChunk.IndexStatus.READY,
+    )
 
 
 def publish_document(
@@ -63,12 +73,7 @@ def search_document_chunks(
     revision: DocumentRevision | None = None,
     search_vectors: Callable[[Business, list[float], int, float, list[UUID]], list[tuple[UUID, float]]] = default_search_vectors,
 ) -> list[tuple[DocumentChunk, float]]:
-    queryset = DocumentChunk.objects.select_related("revision").filter(
-        revision__document__business=business,
-        revision__status=DocumentRevision.Status.PUBLISHED,
-        revision__index_status=DocumentRevision.IndexStatus.READY,
-        index_status=DocumentChunk.IndexStatus.READY,
-    )
+    queryset = active_document_chunks(business)
     if revision is not None:
         queryset = queryset.filter(revision=revision)
     chunks = {chunk.vector_id: chunk for chunk in queryset}
