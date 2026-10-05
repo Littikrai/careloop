@@ -15,7 +15,7 @@ from .vector_store import embed_query as default_embed_query
 from .vector_store import search_vectors as default_search_vectors
 from .vector_store import upsert_vector as default_upsert_vector
 
-_publish_lock = threading.Lock()
+_document_lifecycle_lock = threading.Lock()
 logger = logging.getLogger(__name__)
 
 
@@ -63,7 +63,7 @@ def archive_document(
     *,
     delete_vector: Callable[[Business, UUID], None] = default_delete_vector,
 ) -> bool:
-    with _publish_lock, transaction.atomic():
+    with _document_lifecycle_lock, transaction.atomic():
         revision = DocumentRevision.objects.select_for_update().select_related("document__business").get(
             pk=revision.pk
         )
@@ -81,7 +81,7 @@ def delete_document_revision(
     *,
     delete_vector: Callable[[Business, UUID], None] = default_delete_vector,
 ) -> bool:
-    with _publish_lock, transaction.atomic():
+    with _document_lifecycle_lock, transaction.atomic():
         document = Document.objects.select_for_update().get(pk=revision.document_id)
         revision = DocumentRevision.objects.select_for_update().select_related("document__business").get(
             pk=revision.pk
@@ -112,7 +112,7 @@ def publish_document(
     upsert_vector: Callable[[Business, UUID, list[float]], None] = default_upsert_vector,
     delete_vector: Callable[[Business, UUID], None] = default_delete_vector,
 ) -> int:
-    with _publish_lock:
+    with _document_lifecycle_lock:
         revision.refresh_from_db()
         if revision.status != DocumentRevision.Status.DRAFT:
             raise ValueError("Only a draft Document can be published.")

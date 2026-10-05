@@ -15,4 +15,4 @@
 
 ## Verification
 
-ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 101 รายการ
+ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 102 รายการ
