@@ -1,0 +1,7 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+  <p>Archive <strong>{{ revision.title }}</strong> for {{ revision.document.business.name }}?</p>
+  <p>Archived Documents are no longer available in chat. You can create a new draft from this revision later.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="confirm" value="yes"><button type="submit">Confirm archive</button></form>
+  <a href="{% url 'admin:businesses_documentrevision_change' revision.pk %}">Cancel</a>
+{% endblock %}

@@ -1,4 +1,5 @@
 from urllib.parse import urlencode
+from uuid import UUID
 
 from django.contrib import admin
 from django.contrib.auth.models import Group, User
@@ -14,7 +15,13 @@ from django.utils import timezone
 
 from .document_chunks import preview_chunks
 from .document_importer import DocumentImportError, import_document_json
-from .document_knowledge import publish_document, test_document_retrieval
+from .document_knowledge import (
+    archive_document,
+    create_document_draft,
+    delete_document_revision,
+    publish_document,
+    test_document_retrieval,
+)
 from .forms import ChatQuestionForm, DocumentDraftForm, DocumentImportForm, KnowledgeImportForm
 from .importer import KnowledgeImportError, import_qa_json
 from .models import Business, BusinessApiKey, BusinessIntegration, Document, DocumentRevision, KnowledgeItem
@@ -236,11 +243,13 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
     list_display = ["title", "business_name", "product", "version", "revision_number", "status", "index_status", "updated_at"]
     list_filter = ["document__business", "status", "index_status"]
     search_fields = ["title", "product", "content"]
+    actions = ["create_replacement_drafts"]
 
     def get_urls(self):
         return [
             path("import-json/", self.admin_site.admin_view(self.import_json), name="businesses_documentrevision_import_json"),
             path("<path:object_id>/publish/", self.admin_site.admin_view(self.publish_view), name="businesses_documentrevision_publish"),
+            path("<path:object_id>/archive/", self.admin_site.admin_view(self.archive_view), name="businesses_documentrevision_archive"),
             path("<path:object_id>/test-retrieval/", self.admin_site.admin_view(self.test_retrieval_view), name="businesses_documentrevision_test_retrieval"),
             *super().get_urls(),
         ]
@@ -269,6 +278,27 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
         return render(request, "admin/businesses/documentrevision/publish.html", {
             **self.admin_site.each_context(request), "title": "Publish Document", "revision": revision,
             "chunk_count": chunk_count, "preview_error": preview_error,
+        })
+
+    def archive_view(self, request: HttpRequest, object_id: str):
+        revision = get_object_or_404(self.get_queryset(request), pk=object_id)
+        if not super().has_change_permission(request):
+            raise PermissionDenied
+        if revision.status != DocumentRevision.Status.PUBLISHED:
+            raise Http404
+        url = reverse("admin:businesses_documentrevision_changelist")
+        if request.method == "POST" and request.POST.get("confirm") == "yes":
+            try:
+                cleaned = archive_document(revision)
+            except Exception as error:
+                self.message_user(request, f"Could not archive Document: {error}", messages.ERROR)
+            else:
+                self.message_user(request, "Archived Document; it is no longer available in chat.", messages.SUCCESS)
+                if not cleaned:
+                    self.message_user(request, "Some stale vectors could not be removed and will be ignored by retrieval.", messages.WARNING)
+            return redirect(url)
+        return render(request, "admin/businesses/documentrevision/archive.html", {
+            **self.admin_site.each_context(request), "title": "Archive Document", "revision": revision,
         })
 
     def test_retrieval_view(self, request: HttpRequest, object_id: str):
@@ -315,6 +345,34 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
             {**self.admin_site.each_context(request), "form": form, "title": "Import Documents from JSON"},
         )
 
+    @admin.action(
+        description="Create replacement drafts from selected published or archived Documents",
+        permissions=["change"],
+    )
+    def create_replacement_drafts(self, request: HttpRequest, queryset) -> None:
+        created = 0
+        selected = 0
+        sources: dict[UUID, DocumentRevision] = {}
+        for revision in queryset.select_related("document__business"):
+            selected += 1
+            if revision.status not in {DocumentRevision.Status.PUBLISHED, DocumentRevision.Status.ARCHIVED}:
+                continue
+            current = sources.get(revision.document_id)
+            revision_priority = (revision.status == DocumentRevision.Status.PUBLISHED, revision.revision_number)
+            current_priority = (current.status == DocumentRevision.Status.PUBLISHED, current.revision_number) if current else None
+            if current_priority is None or revision_priority > current_priority:
+                sources[revision.document_id] = revision
+        for revision in sources.values():
+            if create_document_draft(revision) is None:
+                continue
+            else:
+                created += 1
+        skipped = selected - created
+        if created:
+            self.message_user(request, f"Created {created} Document draft(s).", messages.SUCCESS)
+        if skipped:
+            self.message_user(request, f"Skipped {skipped} selected revision(s); each Document can have only one draft.", messages.INFO)
+
     def get_queryset(self, request):
         return super().get_queryset(request).select_related("document__business")
 
@@ -338,10 +396,27 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
         return fields
 
     def has_change_permission(self, request, obj=None) -> bool:
-        return obj is None or obj.status == DocumentRevision.Status.DRAFT
+        return super().has_change_permission(request, obj) and (
+            obj is None or obj.status == DocumentRevision.Status.DRAFT
+        )
 
     def has_delete_permission(self, request, obj=None) -> bool:
-        return False
+        if obj is None:
+            return False
+        deletable = {DocumentRevision.Status.DRAFT, DocumentRevision.Status.ARCHIVED}
+        return obj.status in deletable and super().has_delete_permission(request, obj)
+
+    def delete_model(self, request: HttpRequest, obj: DocumentRevision) -> None:
+        try:
+            cleaned = delete_document_revision(obj)
+        except ValueError as error:
+            raise PermissionDenied from error
+        if not cleaned:
+            self.message_user(
+                request,
+                "Some stale vectors could not be removed and will be ignored by retrieval.",
+                messages.WARNING,
+            )
 
     def save_model(self, request, obj: DocumentRevision, form, change: bool) -> None:
         if not change:
