@@ -1,5 +1,5 @@
 {
-  "evaluated_at": "2026-10-06T08:17:30.077297+00:00",
+  "evaluated_at": "2026-10-06T08:30:55.732447+00:00",
   "business": "AquaFlow P200 release verification",
   "product": "AquaFlow P200",
   "document": {
@@ -9,7 +9,7 @@
   },
   "model": "qwen/qwen3.8-flash",
   "embedding_model": "intfloat/multilingual-e5-small",
-  "system_prompt_sha256": "615ca914f4bd42bc36aed702a1a3a1addb4a7bb65af421e8647b5f26e0bd6e20",
+  "system_prompt_sha256": "6f4df6c0199f3d7bfcac2715aa76f3f16a1de3824ee0b2dc12e3cc9fd9f95f59",
   "method": "HTTP POST through the embedded iframe chat endpoint and backend Chat API inside an isolated Docker Compose container; retrieval checked through the admin Test retrieval page; browser not used",
   "preflight_http_status": 200,
   "summary": {
@@ -23,6 +23,7 @@
     "all_answers_hide_internal_source_ids": true,
     "all_warranty_scope_checks_passed": true,
     "warranty_scope_rechecks_passed": true,
+    "no_unsolicited_warranty_terms": true,
     "api_smoke_status": "answer"
   },
   "api_smoke": {
@@ -63,12 +64,12 @@
         ]
       ],
       "http_status": 200,
-      "answer": "AquaFlow P200 เป็นปั๊มน้ำหมุนเวียนสำหรับตู้ปลาน้ำจืด เหมาะกับตู้ปลาขนาด 80–200 ลิตร โดยออกแบบมาเพื่อหมุนเวียนน้ำผ่านระบบกรองหรือสร้างกระแสน้ำภายในตู้",
+      "answer": "AquaFlow P200 เป็นปั๊มน้ำหมุนเวียนสำหรับตู้ปลาน้ำจืด เหมาะกับตู้ปลาขนาด 80–200 ลิตร โดยออกแบบมาเพื่อใช้หมุนเวียนน้ำผ่านระบบกรองหรือสร้างกระแสน้ำภายในตู้",
       "sources": [
         "AquaFlow P200 verification spec · ภาพรวมสินค้า · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 2.02,
+      "latency_seconds": 14.67,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -109,7 +110,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 2,
@@ -138,12 +140,12 @@
         ]
       ],
       "http_status": 200,
-      "answer": "AquaFlow P200 ปรับอัตราการไหลได้ 3 ระดับ ดังนี้:\n- ระดับต่ำ: ประมาณ 500 ลิตรต่อชั่วโมง (L/h)\n- ระดับกลาง: ประมาณ 850 ลิตรต่อชั่วโมง (L/h)\n- ระดับสูงสุด: ประมาณ 1,200 ลิตรต่อชั่วโมง (L/h)\n\nหมายเหตุ: ค่าการไหลจริงอาจลดลงเมื่อใช้ท่อยาว มีข้องอ หรือมีวัสดุกรองหนาแน่น ตัวเลขข้างต้นเป็นค่าทดสอบในสภาพมาตรฐาน ไม่ใช่ค่าที่รับประกันสำหรับทุกการติดตั้ง",
+      "answer": "AquaFlow P200 ปรับระดับการไหลได้ 3 ระดับ ดังนี้:\n- ต่ำ: ประมาณ 500 ลิตรต่อชั่วโมง (L/h)\n- กลาง: ประมาณ 850 ลิตรต่อชั่วโมง (L/h)\n- สูงสุด: ประมาณ 1,200 ลิตรต่อชั่วโมง (L/h)\n\nหมายเหตุ: ค่าการไหลจริงอาจลดลงเมื่อใช้ท่อยาว มีข้องอ หรือมีวัสดุกรองหนาแน่น ตัวเลขข้างต้นเป็นค่าทดสอบในสภาพมาตรฐาน ไม่ใช่ค่าที่รับประกันสำหรับทุกการติดตั้ง",
       "sources": [
         "AquaFlow P200 verification spec · สมรรถนะ · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 2.7,
+      "latency_seconds": 2.72,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -184,7 +186,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 3,
@@ -206,7 +209,7 @@
         "AquaFlow P200 verification spec · ไฟฟ้าและขนาด · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 1.29,
+      "latency_seconds": 1.22,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -247,7 +250,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 4,
@@ -278,12 +282,12 @@
         ]
       ],
       "http_status": 200,
-      "answer": "AquaFlow P200 มีกำลังไฟสูงสุด 18 วัตต์ และรองรับแรงดันไฟฟ้า 220–240 โวลต์ AC ที่ความถี่ 50 เฮิรตซ์",
+      "answer": "AquaFlow P200 มีกำลังไฟสูงสุด 18 วัตต์ รองรับแรงดันไฟฟ้า 220–240 โวลต์ AC และมีความถี่ 50 เฮิรตซ์",
       "sources": [
         "AquaFlow P200 verification spec · ไฟฟ้าและขนาด · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 1.85,
+      "latency_seconds": 1.63,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -324,7 +328,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 5,
@@ -352,7 +357,7 @@
         "AquaFlow P200 verification spec · การติดตั้ง · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 1.59,
+      "latency_seconds": 1.63,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -393,7 +398,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 6,
@@ -423,14 +429,14 @@
         ]
       ],
       "http_status": 200,
-      "answer": "วิธีดูแลรักษาปั๊ม AquaFlow P200 มีดังนี้:\n\n1. **การทำความสะอาด:** ควรล้างฟองน้ำหน้าเครื่องทุก 2 สัปดาห์ และตรวจใบพัดทุก 1 เดือน โดยใช้ \"น้ำจากตู้ปลา\" ในการล้างชิ้นส่วนเท่านั้น ห้ามใช้น้ำยาทำความสะอาดที่มีสารเคมีรุนแรง\n2. **ข้อควรระวังในการใช้งาน:** ต้องถอดปลั๊กก่อนยกปั๊มออกจากตู้ปลาเสมอ ห้ามให้เครื่องทำงานโดยไม่มีน้ำ (ห้ามเปิดเครื่องขณะแห้ง) และห้ามใช้กับน้ำเค็มหรือใช้งานกลางแจ้ง\n3. **กรณีอัตราการไหลลดลง:** ให้ตรวจสอบฟองน้ำ ใบพัด และท่อก่อน\n4. **หลังไฟดับ:** ก่อนเปิดใช้อีกครั้ง ให้ตรวจว่าตัวเครื่องยังจมอยู่ใต้น้ำทั้งหมดหรือไม่\n\n**หมายเหตุสำคัญ:** ข้อมูลนี้เป็นข้อมูลจำลองสำหรับทดสอบระบบเท่านั้น ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง",
+      "answer": "วิธีดูแลรักษาปั๊ม AquaFlow P200 มีดังนี้:\n\n1. **การทำความสะอาด:**\n   - ถอดปลั๊กก่อนยกปั๊มออกจากตู้ปลาทุกครั้ง\n   - ล้างฟองน้ำหน้าเครื่องทุก 2 สัปดาห์\n   - ตรวจใบพัดทุก 1 เดือน\n   - ใช้น้ำจากตู้ปลาล้างชิ้นส่วนเท่านั้น ห้ามใช้น้ำยาทำความสะอาดที่มีสารเคมีรุนแรง\n\n2. **ข้อควรระวังในการใช้งาน:**\n   - ห้ามใช้กับน้ำเค็ม\n   - ห้ามใช้กลางแจ้ง\n   - ห้ามให้เครื่องทำงานโดยไม่มีน้ำ (ห้ามเปิดเครื่องขณะแห้ง)\n   - วางตัวเครื่องให้จมอยู่ใต้น้ำทั้งหมดก่อนเสียบปลั๊ก โดยระดับน้ำต้องสูงกว่าตัวเครื่องอย่างน้อย 3 เซนติเมตร\n   - หลีกเลี่ยงการพับหรือหักงอท่อส่งน้ำ\n\n3. **เมื่ออัตราการไหลลดลง:**\n   - ให้ตรวจสภาพฟองน้ำ ใบพัด และท่อก่อนเป็นอันดับแรก\n\n*หมายเหตุ: ข้อมูลนี้เป็นข้อมูลจำลองสำหรับทดสอบระบบเท่านั้น ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง*",
       "sources": [
         "AquaFlow P200 verification spec · การดูแลรักษาและข้อจำกัด · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · การติดตั้ง · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · AquaFlow P200 — ข้อมูลจำลองสำหรับทดสอบแชต · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 4.06,
+      "latency_seconds": 4.59,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -471,7 +477,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 7,
@@ -497,13 +504,13 @@
         ]
       ],
       "http_status": 200,
-      "answer": "ข้อต่อทางออกของ AquaFlow P200 มีเส้นผ่านศูนย์กลาง 16 มิลลิเมตร ส่วนในกล่องบรรจุภัณฑ์ไม่มีท่อส่งน้ำให้มาด้วย (มีเพียงข้อต่อท่อขนาด 16 มิลลิเมตร 1 ชิ้น)",
+      "answer": "ข้อต่อทางออกของ AquaFlow P200 มีเส้นผ่านศูนย์กลาง 16 มิลลิเมตร ส่วนในกล่องมีเฉพาะข้อต่อท่อขนาด 16 มิลลิเมตร จำนวน 1 ชิ้น ไม่มีท่อส่งน้ำมาให้ครับ",
       "sources": [
         "AquaFlow P200 verification spec · การติดตั้ง · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · อุปกรณ์ในกล่องและการรับประกัน · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 2.01,
+      "latency_seconds": 2.21,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -544,7 +551,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 8,
@@ -581,13 +589,13 @@
         ]
       ],
       "http_status": 200,
-      "answer": "ข้อมูลเกี่ยวกับอุปกรณ์ในกล่องและการรับประกันของ AquaFlow P200 มาจากเอกสารจำลองสำหรับทดสอบระบบเท่านั้น ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง\n\nตามเอกสารจำลองดังกล่าว:\n- **อุปกรณ์ในกล่อง** ประกอบด้วย ปั๊ม AquaFlow P200 จำนวน 1 เครื่อง, ถ้วยดูด 4 ชิ้น, ข้อต่อท่อขนาด 16 มิลลิเมตร 1 ชิ้น และคู่มือฉบับย่อ 1 แผ่น (ไม่มีท่อส่งน้ำและวัสดุกรอง)\n- **การรับประกัน** ตัวเครื่องมีระยะเวลา 12 เดือนนับจากวันที่ซื้อ โดยต้องมีหลักฐานการซื้อ และการรับประกันไม่ครอบคลุมความเสียหายจากการเปิดเครื่องโดยไม่มีน้ำ การใช้กับน้ำเค็ม หรือการใช้แรงดันไฟนอกช่วงที่ระบุ",
+      "answer": "ข้อมูลนี้เป็นข้อมูลจำลองสำหรับทดสอบระบบเท่านั้น ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง\n\nตามเอกสารจำลองนี้ ในกล่อง AquaFlow P200 มีอุปกรณ์ดังนี้:\n- ปั๊ม AquaFlow P200 จำนวน 1 เครื่อง\n- ถ้วยดูด 4 ชิ้น\n- ข้อต่อท่อขนาด 16 มิลลิเมตร 1 ชิ้น\n- คู่มือฉบับย่อ 1 แผ่น\n(หมายเหตุ: ไม่มีท่อส่งน้ำและวัสดุกรองในกล่อง)\n\nสำหรับการรับประกัน เอกสารระบุว่าการรับประกันตัวเครื่องมีระยะเวลา 12 เดือนนับจากวันที่ซื้อ โดยต้องมีหลักฐานการซื้อ และขอย้ำว่านี่เป็นเพียงข้อมูลตัวอย่างจากการทดสอบ ไม่ใช่การรับประกันจริง",
       "sources": [
         "AquaFlow P200 verification spec · อุปกรณ์ในกล่องและการรับประกัน · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · AquaFlow P200 — ข้อมูลจำลองสำหรับทดสอบแชต · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 3.15,
+      "latency_seconds": 4.06,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -628,7 +636,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 9,
@@ -654,14 +663,14 @@
         ]
       ],
       "http_status": 200,
-      "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่าห้ามใช้กับน้ำเค็ม และตัวเครื่องออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น\n\nหมายเหตุ: ข้อมูลนี้มาจากเอกสารจำลองสำหรับการทดสอบระบบ ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง",
+      "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่า \"ห้ามใช้กับน้ำเค็ม\" และตัวเครื่องออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น\n\nหมายเหตุ: ข้อมูลนี้เป็นข้อมูลจำลองสำหรับการทดสอบระบบ ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง",
       "sources": [
         "AquaFlow P200 verification spec · ภาพรวมสินค้า · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · การดูแลรักษาและข้อจำกัด · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · AquaFlow P200 — ข้อมูลจำลองสำหรับทดสอบแชต · AquaFlow P200 · 2026.1"
       ],
       "observed_status": "answer",
-      "latency_seconds": 2.26,
+      "latency_seconds": 2.41,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -702,7 +711,8 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     },
     {
       "id": 10,
@@ -712,10 +722,10 @@
       "answer_terms": [],
       "must_refuse": true,
       "http_status": 200,
-      "answer": "ข้อมูลเอกสารที่ระบุไม่ได้กล่าวถึงระดับเสียงของ AquaFlow P200 เป็นเดซิเบล (dB) ไว้",
+      "answer": "ข้อมูลเอกสารที่ระบุไม่ได้แจ้งค่าระดับเสียงของ AquaFlow P200 เป็นเดซิเบลไว้",
       "sources": [],
       "observed_status": "insufficient_knowledge",
-      "latency_seconds": 1.65,
+      "latency_seconds": 1.84,
       "retrieval_pass": true,
       "retrieval_missing_terms": [],
       "retrieval_diagnostics": [
@@ -756,43 +766,44 @@
       "allowed_origin_csp": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "warranty_scope_pass": true
+      "warranty_scope_pass": true,
+      "no_unsolicited_warranty_terms": true
     }
   ],
   "warranty_scope_rechecks": [
     {
-      "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่า \"ห้ามใช้กับน้ำเค็ม\" และสินค้าถูกออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น นอกจากนี้ การรับประกันไม่ครอบคลุมความเสียหายที่เกิดจากการใช้น้ำเค็ม\n\nหมายเหตุ: ข้อมูลนี้มาจากเอกสารจำลองสำหรับการทดสอบแชต (AquaFlow P200 verification spec) ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง",
+      "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่า \"ห้ามใช้กับน้ำเค็ม\" และตัวเครื่องถูกออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น\n\nหมายเหตุ: ข้อมูลนี้เป็นส่วนหนึ่งของเอกสารจำลองสำหรับการทดสอบระบบ ไม่ใช่สเปกหรือคำรับประกันของสินค้าที่มีจำหน่ายจริง",
       "sources": [
         "AquaFlow P200 verification spec · ภาพรวมสินค้า · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · การดูแลรักษาและข้อจำกัด · AquaFlow P200 · 2026.1",
-        "AquaFlow P200 verification spec · อุปกรณ์ในกล่องและการรับประกัน · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · AquaFlow P200 — ข้อมูลจำลองสำหรับทดสอบแชต · AquaFlow P200 · 2026.1"
       ],
       "answer_pass": true,
       "warranty_scope_pass": true,
-      "latency_seconds": 2.83,
+      "no_unsolicited_warranty_terms": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
       "allowed_origin_csp": true,
-      "repeat": 1,
-      "question": "AquaFlow P200 ใช้กับตู้ปลาน้ำเค็มได้หรือเปล่า?"
+      "latency_seconds": 2.42,
+      "question": "AquaFlow P200 ใช้กับตู้ปลาน้ำเค็มได้หรือเปล่า?",
+      "repeat": 1
     },
     {
-      "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่า \"ห้ามใช้กับน้ำเค็ม\" และสินค้าถูกออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น นอกจากนี้ การรับประกันไม่ครอบคลุมความเสียหายที่เกิดจากการใช้งานกับน้ำเค็ม\n\nหมายเหตุ: ข้อมูลนี้มาจากเอกสารจำลองสำหรับการทดสอบระบบ (ข้อมูลสมมติ) ไม่ใช่สเปกจริงของสินค้าที่จำหน่ายในท้องตลาด",
+      "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่า \"ห้ามใช้กับน้ำเค็ม\" และตัวเครื่องถูกออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น\n\n(หมายเหตุ: ข้อมูลนี้มาจากเอกสารจำลองสำหรับทดสอบระบบ ไม่ใช่สเปกของสินค้าที่มีจำหน่ายจริง)",
       "sources": [
         "AquaFlow P200 verification spec · ภาพรวมสินค้า · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · การดูแลรักษาและข้อจำกัด · AquaFlow P200 · 2026.1",
-        "AquaFlow P200 verification spec · อุปกรณ์ในกล่องและการรับประกัน · AquaFlow P200 · 2026.1",
         "AquaFlow P200 verification spec · AquaFlow P200 — ข้อมูลจำลองสำหรับทดสอบแชต · AquaFlow P200 · 2026.1"
       ],
       "answer_pass": true,
       "warranty_scope_pass": true,
-      "latency_seconds": 2.56,
+      "no_unsolicited_warranty_terms": true,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
       "allowed_origin_csp": true,
-      "repeat": 2,
-      "question": "AquaFlow P200 ใช้กับตู้ปลาน้ำเค็มได้หรือเปล่า?"
+      "latency_seconds": 2.64,
+      "question": "AquaFlow P200 ใช้กับตู้ปลาน้ำเค็มได้หรือเปล่า?",
+      "repeat": 2
     }
   ]
 }
