@@ -773,7 +773,9 @@
       "latency_seconds": 2.83,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "allowed_origin_csp": true
+      "allowed_origin_csp": true,
+      "repeat": 1,
+      "question": "AquaFlow P200 ใช้กับตู้ปลาน้ำเค็มได้หรือเปล่า?"
     },
     {
       "answer": "AquaFlow P200 ไม่สามารถใช้งานกับตู้ปลาน้ำเค็มได้ เนื่องจากเอกสารระบุชัดเจนว่า \"ห้ามใช้กับน้ำเค็ม\" และสินค้าถูกออกแบบมาสำหรับตู้ปลาน้ำจืดเท่านั้น นอกจากนี้ การรับประกันไม่ครอบคลุมความเสียหายที่เกิดจากการใช้งานกับน้ำเค็ม\n\nหมายเหตุ: ข้อมูลนี้มาจากเอกสารจำลองสำหรับการทดสอบระบบ (ข้อมูลสมมติ) ไม่ใช่สเปกจริงของสินค้าที่จำหน่ายในท้องตลาด",
@@ -788,7 +790,9 @@
       "latency_seconds": 2.56,
       "answer_terms_pass": true,
       "required_caveats_pass": true,
-      "allowed_origin_csp": true
+      "allowed_origin_csp": true,
+      "repeat": 2,
+      "question": "AquaFlow P200 ใช้กับตู้ปลาน้ำเค็มได้หรือเปล่า?"
     }
   ]
 }
