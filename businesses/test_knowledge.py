@@ -7,7 +7,7 @@ from django.contrib.auth import get_user_model
 
 from .models import Business, KnowledgeItem
 from .openrouter import CompletionResult
-from .rag import answer_question, publish_item
+from .rag import AnswerResult, answer_question, publish_item
 
 
 class KnowledgeJourneyTests(TestCase):
@@ -106,6 +106,8 @@ class KnowledgeJourneyTests(TestCase):
             return []
 
         def complete(question, knowledge):
+            if not knowledge:
+                return CompletionResult("insufficient_knowledge", "ขออภัย ยังไม่มีข้อมูลเผยแพร่ตอบคำถามนี้", ())
             self.assertEqual(question, "เปิดวันไหน?")
             self.assertEqual(knowledge[0]["question"], item.question)
             self.assertEqual(knowledge[0]["answer"], item.answer)
@@ -129,6 +131,7 @@ class KnowledgeJourneyTests(TestCase):
             complete=complete,
         )
         self.assertEqual(missing.kind, "insufficient_knowledge")
+        self.assertEqual(missing.text, "ขออภัย ยังไม่มีข้อมูลเผยแพร่ตอบคำถามนี้")
 
     def test_published_qa_retrieves_from_local_qdrant_before_completion(self):
         from . import vector_store
@@ -385,11 +388,16 @@ class ChatJourneyTests(TestCase):
 
         cache.clear()
         coffee = Business.objects.create(name="Coffee House")
-        first = self.client.post(coffee.get_absolute_url(), {"question": "First question"})
-        second = self.client.post(coffee.get_absolute_url(), {"question": "Second question"})
+        with (
+            patch("businesses.views.time.time", return_value=60),
+            patch("businesses.views.answer_question", return_value=AnswerResult("answer", "Published answer")) as answer,
+        ):
+            first = self.client.post(coffee.get_absolute_url(), {"question": "First question"})
+            second = self.client.post(coffee.get_absolute_url(), {"question": "Second question"})
         self.assertEqual(first.status_code, 200)
         self.assertEqual(second.status_code, 429)
         self.assertContains(second, "Too many questions", status_code=429)
+        answer.assert_called_once()
 
     def test_drafts_are_not_used_and_chat_post_requires_csrf(self):
         from django.test import Client
@@ -401,9 +409,16 @@ class ChatJourneyTests(TestCase):
             browser.post(business.get_absolute_url(), {"question": "Tell me the secret"}).status_code,
             403,
         )
-        with patch("businesses.vector_store.embed_query") as embed_query:
+        refusal = "I couldn't find published information to answer “Tell me the secret” yet."
+        with (
+            patch("businesses.vector_store.embed_query") as embed_query,
+            patch(
+                "businesses.openrouter.complete_answer",
+                return_value=CompletionResult("insufficient_knowledge", refusal, ()),
+            ),
+        ):
             response = self.client.post(business.get_absolute_url(), {"question": "Tell me the secret"})
-        self.assertContains(response, "enough published information")
+        self.assertContains(response, "published information to answer")
         embed_query.assert_not_called()
 
     def test_chat_reports_a_llm_failure_after_retrieval(self):

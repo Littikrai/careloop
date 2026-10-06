@@ -10,7 +10,7 @@ from django.db import transaction
 
 from .document_knowledge import active_document_chunks, search_document_chunks
 from .models import Business, DocumentChunk, KnowledgeItem
-from .openrouter import CompletionResult
+from .openrouter import CompletionResult, OpenRouterError
 
 Embedding = list[float]
 Embed = Callable[[str], Embedding]
@@ -44,6 +44,24 @@ def _without_repeated_document_text(text: str, earlier_texts: list[str]) -> str:
                 text = text[:-length].rstrip()
                 break
     return text
+
+
+def _insufficient_fallback(question: str) -> str:
+    # ponytail: Thai-script detection covers the local fallback; other languages use the configured template.
+    question = question[:200]
+    if any("\u0e00" <= character <= "\u0e7f" for character in question):
+        return f"ขออภัย ตอนนี้ยังไม่พบข้อมูลที่เผยแพร่เพื่อตอบคำถาม “{question}”"
+    return settings.RAG_INSUFFICIENT_MESSAGE.replace("{question}", question)
+
+
+def _insufficient_answer(question: str, complete: Complete) -> AnswerResult:
+    try:
+        completion = complete(question, [])
+    except OpenRouterError:
+        completion = None
+    if completion and completion.status == "insufficient_knowledge" and completion.answer:
+        return AnswerResult("insufficient_knowledge", completion.answer)
+    return AnswerResult("insufficient_knowledge", _insufficient_fallback(question))
 
 
 def publish_item(
@@ -120,14 +138,14 @@ def answer_question(
         status=KnowledgeItem.Status.PUBLISHED,
         index_status=KnowledgeItem.IndexStatus.READY,
     ))
-    has_documents = active_document_chunks(business).exists()
-    if not published and not has_documents:
-        return AnswerResult("insufficient_knowledge", settings.RAG_INSUFFICIENT_MESSAGE)
-
     if complete is None:
         from .openrouter import complete_answer
 
         complete = complete_answer
+
+    has_documents = active_document_chunks(business).exists()
+    if not published and not has_documents:
+        return _insufficient_answer(question, complete)
 
     normalized = normalise_question(question)
     exact = [item for item in published if normalise_question(item.question) == normalized]
@@ -160,7 +178,7 @@ def answer_question(
             )
 
     if not ranked:
-        return AnswerResult("insufficient_knowledge", settings.RAG_INSUFFICIENT_MESSAGE)
+        return _insufficient_answer(question, complete)
 
     sources: list[dict[str, str | bool]] = []
     public_sources: dict[str, dict[str, str]] = {}
@@ -213,9 +231,9 @@ def answer_question(
             selected_document_texts.setdefault(document_group, []).append(item.text)
 
     if not sources:
-        return AnswerResult("insufficient_knowledge", settings.RAG_INSUFFICIENT_MESSAGE)
+        return _insufficient_answer(question, complete)
     completion = complete(question, sources)
     if completion.status == "insufficient_knowledge":
-        return AnswerResult("insufficient_knowledge", settings.RAG_INSUFFICIENT_MESSAGE)
+        return AnswerResult("insufficient_knowledge", completion.answer or _insufficient_fallback(question))
     cited = tuple(public_sources[source_id] for source_id in completion.source_ids)
     return AnswerResult(completion.status, completion.answer, cited)

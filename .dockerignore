@@ -5,5 +5,7 @@
 !config/**
 !businesses/
 !businesses/**
+!examples/
+!examples/**
 **/__pycache__/
 **/*.pyc

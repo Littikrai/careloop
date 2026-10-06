@@ -52,7 +52,7 @@ RAG_TOP_K = int(os.environ.get("RAG_TOP_K", "3"))
 RAG_SCORE_THRESHOLD = float(os.environ.get("RAG_SCORE_THRESHOLD", "0.55"))
 RAG_INSUFFICIENT_MESSAGE = os.environ.get(
     "RAG_INSUFFICIENT_MESSAGE",
-    "I don't have enough published information to answer that yet.",
+    "I couldn't find published information to answer “{question}” yet.",
 )
 EMBEDDING_MODEL = os.environ.get(
     "EMBEDDING_MODEL",

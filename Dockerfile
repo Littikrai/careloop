@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir --extra-index-url https://download.pytorch.org/wh
 COPY manage.py ./
 COPY config ./config
 COPY businesses ./businesses
+COPY examples ./examples
 RUN DJANGO_SECRET_KEY=build-only-placeholder-not-a-runtime-secret-1234567890 python manage.py collectstatic --noinput \
     && mkdir -p /data && chown -R 10001:10001 /data
 USER 10001:10001

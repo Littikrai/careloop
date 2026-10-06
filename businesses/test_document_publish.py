@@ -180,18 +180,25 @@ class DocumentRetrievalTests(TestCase):
         self.assertEqual(result.sources, ({"type": "qa", "label": "Verified answer"},))
         self.assertEqual(qa.status, KnowledgeItem.Status.PUBLISHED)
 
-    def test_no_matching_chunk_skips_openrouter_and_other_business(self):
+    def test_no_matching_chunk_sends_no_unrelated_sources_to_openrouter(self):
+        calls = []
+
+        def complete(question, sources):
+            calls.append((question, sources))
+            return CompletionResult("insufficient_knowledge", "No relevant published information was found.", ())
+
         result = answer_question(
             self.other, "X500 speed?",
             embed_query=lambda text: self.fail("Other business has no knowledge"),
-            complete=lambda *args: self.fail("No OpenRouter call"),
+            complete=complete,
         )
         self.assertEqual(result.kind, "insufficient_knowledge")
         result = answer_question(
             self.business, "X500 speed?", embed_query=lambda text: [1.0],
-            search_vectors=lambda *args: [], complete=lambda *args: self.fail("No OpenRouter call"),
+            search_vectors=lambda *args: [], complete=complete,
         )
         self.assertEqual(result.kind, "insufficient_knowledge")
+        self.assertEqual(calls, [("X500 speed?", []), ("X500 speed?", [])])
 
     def test_web_widget_and_api_show_document_citation(self):
         integration = BusinessIntegration.objects.create(business=self.business, allowed_origins=["http://localhost:3000"])
@@ -348,11 +355,18 @@ class DocumentRetrievalTests(TestCase):
             business=self.other, question="Long policy?", answer="x" * 9000,
             status=KnowledgeItem.Status.PUBLISHED, index_status=KnowledgeItem.IndexStatus.READY,
         )
+        supplied_sources = []
+
+        def complete(question, sources):
+            supplied_sources.append(sources)
+            return CompletionResult("insufficient_knowledge", "No relevant published information was found.", ())
+
         result = answer_question(
             self.other, "Long policy?", embed_query=lambda text: self.fail("Exact match does not embed"),
-            complete=lambda *args: self.fail("Oversized source must not be sent"),
+            complete=complete,
         )
         self.assertEqual(result.kind, "insufficient_knowledge")
+        self.assertEqual(supplied_sources, [[]])
         self.assertEqual(qa.status, KnowledgeItem.Status.PUBLISHED)
 
     def test_qdrant_document_search_uses_only_ready_vectors_from_selected_business(self):

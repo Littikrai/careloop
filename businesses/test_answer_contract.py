@@ -34,6 +34,13 @@ class StructuredCompletionTests(TestCase):
 
         self.assertEqual(result, CompletionResult("answer", "Nine to five", ("src-1",)))
         body = json.loads(send.call_args.args[0].data)
+        self.assertIn("Use the customer's language for every response", body["messages"][0]["content"])
+        self.assertIn("answer the supported facts", body["messages"][0]["content"])
+        self.assertIn("Apply a test-only or sample disclaimer in any chunk", body["messages"][0]["content"])
+        self.assertIn("answer that the sample states 12 months", body["messages"][0]["content"])
+        self.assertIn("does not erase them", body["messages"][0]["content"])
+        self.assertIn("never include internal IDs", body["messages"][0]["content"])
+        self.assertIn("If no sources are supplied", body["messages"][0]["content"])
         self.assertEqual(body["response_format"]["type"], "json_schema")
         self.assertTrue(body["response_format"]["json_schema"]["strict"])
         self.assertEqual(body["response_format"]["json_schema"]["schema"]["required"], ["status", "answer", "source_ids"])
@@ -65,6 +72,20 @@ class StructuredCompletionTests(TestCase):
             result = complete_answer("Hours?", self.sources)
         self.assertEqual(result.answer, "Nine to five")
         self.assertNotIn("Hidden reasoning", repr(result))
+
+    @override_settings(OPENROUTER_API_KEY="test-key")
+    def test_internal_source_ids_are_removed_from_customer_facing_answer(self):
+        sources: list[dict[str, str | bool]] = [*self.sources, {
+            "id": "src-2", "type": "qa", "question": "Holiday hours?", "answer": "Closed", "authoritative": False,
+        }]
+        content = json.dumps({
+            "status": "answer",
+            "answer": "Nine to five [src-1], holiday hours are closed (src-2).",
+            "source_ids": ["src-1", "src-2"],
+        })
+        with patch("urllib.request.urlopen", return_value=_Response(content)):
+            result = complete_answer("Hours?", sources)
+        self.assertEqual(result.answer, "Nine to five, holiday hours are closed.")
 
 
 class SafeQaAuthorityTests(TestCase):
@@ -145,17 +166,86 @@ class SafeQaAuthorityTests(TestCase):
         self.item.refresh_from_db()
         self.assertEqual(self.item.answer, "2.5 Gbps")
 
-    def test_insufficient_uses_local_message_and_discards_model_text(self):
+    def test_insufficient_uses_the_model_localized_refusal(self):
+        refusal = "ขออภัย ยังยืนยันอัตราการไหลจากข้อมูลที่พบไม่ได้"
         result = answer_question(
             self.business,
             "How fast is it?",
             embed_query=lambda text: [1.0],
             search_vectors=lambda *args: [(self.item.vector_id, 0.8)],
-            complete=lambda question, sources: CompletionResult("insufficient_knowledge", "Guess: 10 Gbps", ()),
+            complete=lambda question, sources: CompletionResult("insufficient_knowledge", refusal, ()),
         )
         self.assertEqual(result.kind, "insufficient_knowledge")
-        self.assertNotIn("10 Gbps", result.text)
+        self.assertEqual(result.text, refusal)
         self.assertEqual(result.sources, ())
+
+    def test_no_retrieved_knowledge_generates_a_language_matched_refusal_without_sources(self):
+        business = Business.objects.create(name="Empty business")
+        calls = []
+
+        def complete(question, sources):
+            calls.append((question, sources))
+            if "สี" in question:
+                refusal = "ขออภัย ยังไม่มีข้อมูลเผยแพร่ที่ตอบคำถามนี้ได้"
+            else:
+                refusal = "I couldn't find published information for that question."
+            return CompletionResult("insufficient_knowledge", refusal, ())
+
+        thai = answer_question(
+            business,
+            "มีสีอะไรบ้าง?",
+            complete=complete,
+        )
+        english = answer_question(
+            business,
+            "What is the sound level?",
+            complete=complete,
+        )
+
+        self.assertEqual(calls, [("มีสีอะไรบ้าง?", []), ("What is the sound level?", [])])
+        self.assertEqual(thai.kind, "insufficient_knowledge")
+        self.assertEqual(thai.text, "ขออภัย ยังไม่มีข้อมูลเผยแพร่ที่ตอบคำถามนี้ได้")
+        self.assertEqual(english.kind, "insufficient_knowledge")
+        self.assertEqual(english.text, "I couldn't find published information for that question.")
+
+    def test_no_retrieved_knowledge_does_not_return_an_unsupported_model_answer(self):
+        business = Business.objects.create(name="Empty business")
+
+        result = answer_question(
+            business,
+            "มีสีอะไรบ้าง?",
+            complete=lambda question, sources: CompletionResult("answer", "มีสามสี", ()),
+        )
+
+        self.assertEqual(result.kind, "insufficient_knowledge")
+        self.assertNotIn("สามสี", result.text)
+
+    def test_openrouter_failure_uses_localized_fallback(self):
+        business = Business.objects.create(name="Empty business")
+
+        def unavailable(question, sources):
+            raise OpenRouterError("offline")
+
+        thai = answer_question(business, "เปิดกี่โมง?", complete=unavailable)
+        english = answer_question(business, "When does it open?", complete=unavailable)
+
+        self.assertEqual(thai.kind, "insufficient_knowledge")
+        self.assertIn("เปิดกี่โมง?", thai.text)
+        self.assertIn("ไม่พบข้อมูลที่เผยแพร่", thai.text)
+        self.assertEqual(
+            english.text,
+            "I couldn't find published information to answer “When does it open?” yet.",
+        )
+
+    def test_localized_fallback_limits_reflected_question_length(self):
+        business = Business.objects.create(name="Empty business")
+
+        def unavailable(question, sources):
+            raise OpenRouterError("offline")
+
+        result = answer_question(business, "x" * 300, complete=unavailable)
+
+        self.assertEqual(len(result.text), len("I couldn't find published information to answer “” yet.") + 200)
 
     def test_only_cited_semantic_sources_are_public(self):
         second = KnowledgeItem.objects.create(business=self.business, question="Router X600 speed?", answer="5 Gbps")

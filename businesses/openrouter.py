@@ -1,4 +1,5 @@
 import json
+import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -25,7 +26,22 @@ overview when a coherent source describes its type or intended use. Do not requi
 complete specification. Use only facts stated in coherent sources; never infer details from incomplete fragments.
 If sources conflict without an authoritative match, or a product/version is ambiguous, ask one concise
 clarifying question. Return insufficient_knowledge only when no source supports a factual answer to the
-question. Use the customer's language when possible. Cite only sources you used."""
+question. If sources support any part of a multi-part question, answer the supported facts and say briefly
+which requested detail is not documented; do not refuse the whole question because one detail is missing.
+Chunks with the same title, product, and version belong to the same document unless they directly conflict on a
+fact. Apply a test-only or sample disclaimer in any chunk to that document's other chunks. The disclaimer
+qualifies the facts but does not erase them, create a conflict, or make supported details unavailable. If asked
+about sample data, answer what the document says and identify it as test data; do not present its values as
+real specifications or guarantees. Do not refuse just because you cannot verify whether the real-world product
+has those values. For example, if a test-only source states "12-month warranty" and says it is not a real
+guarantee, answer that the sample states 12 months and clearly say it is not an actual guarantee. Return
+insufficient_knowledge only when the requested fact is absent from all relevant sources.
+Put citations only in source_ids; never include internal IDs such as [src-1] in the customer-facing answer.
+Use the customer's language for every response. For insufficient_knowledge, write a brief
+customer-facing explanation in that language in the answer field. State only that the supplied published
+information does not establish the requested fact; do not guess, add unrelated facts, or use a fixed English
+message for a non-English question. If no sources are supplied, do not answer factually; say in the customer's
+language that no relevant published information was found. Cite only sources you used."""
 
 
 ANSWER_SCHEMA = {
@@ -58,7 +74,16 @@ def _parse_completion(content: object, allowed_ids: set[str]) -> CompletionResul
         or (status == "answer" and not source_ids)
     ):
         raise ValueError("Invalid source IDs")
-    return CompletionResult(status, answer.strip(), tuple(source_ids))
+    answer = re.sub(
+        r"\s*(?:\[\s*src-\d+\s*\]|\(\s*src-\d+\s*\)|\bsrc-\d+\b)\s*",
+        " ",
+        answer,
+        flags=re.IGNORECASE,
+    )
+    answer = re.sub(r"\s+([,.;:!?])", r"\1", answer).strip()
+    if status != "insufficient_knowledge" and not answer:
+        raise ValueError("Empty answer after removing source IDs")
+    return CompletionResult(status, answer, tuple(source_ids))
 
 
 def complete_answer(question: str, sources: list[dict[str, str | bool]]) -> CompletionResult:

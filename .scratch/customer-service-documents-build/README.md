@@ -1,6 +1,6 @@
 # งานพัฒนาฐานความรู้จากเอกสาร
 
-แผนปัจจุบันมี 9 tickets สำหรับส่งมอบและปรับการค้นจากฐานความรู้เอกสาร ตามด้วย ticket ตรวจรับและอัปเดตคู่มือเป็นงานสุดท้าย โดยเลื่อนระบบ reindex แบบแยก generation ออกไป เพราะขนาดข้อมูลปัจจุบันยังเล็ก
+แผนนี้ส่งมอบการค้นจากฐานความรู้เอกสาร รวม 10 tickets โดยเลื่อนระบบ reindex แบบแยก generation ออกไป เพราะขนาดข้อมูลปัจจุบันยังเล็ก
 
 ## งานตามลำดับ
 
@@ -18,11 +18,11 @@
 
 - [ตรวจรับฐานความรู้จากเอกสารและอัปเดตคู่มือ](issues/10-document-knowledge-release.md)
 
-## Frontier
+## สถานะ
 
-เริ่มพร้อมกันได้ที่ **ทำให้คำตอบจาก Q&A มี contract ที่ปลอดภัย** และ **เพิ่มและตรวจตัวอย่าง Document draft** หลังงาน Document draft เสร็จจึงเริ่ม JSON import ได้ ส่วนการตอบจาก Document ต้องรอทั้ง answer contract และ Document draft
+Tickets #01–#10 เสร็จครบแล้ว ไม่มีการ์ดค้าง การตรวจรับสุดท้ายบันทึกไว้ใน [ticket #10](issues/10-document-knowledge-release.md) และผลทดสอบคำถาม AquaFlow 10 ข้ออยู่ใน [test report](../../test-results/aquaflow-p200-qwen3.8-flash.json)
 
-ผล prototype และกติกาแบ่ง Markdown ถูกสรุปแล้ว; tickets #07 (structure-aware chunks) และ #08 (E5 + offline rebuild) เสร็จแล้ว งานถัดไปคือ #09 ตรวจ retrieval และคำตอบภาษาไทย จากนั้น #10 ตรวจรับและอัปเดตคู่มือเป็นงานสุดท้าย
+ผล prototype และกติกาแบ่ง Markdown ถูกสรุปไว้ใน decision map; tickets #07 (structure-aware chunks), #08 (E5 + offline rebuild), #09 (ตรวจ retrieval และคำตอบภาษาไทย) และ #10 (ตรวจรับและอัปเดตคู่มือ) เสร็จแล้ว
 
 ## แหล่งข้อตกลง
 
