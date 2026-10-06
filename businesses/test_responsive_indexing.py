@@ -377,7 +377,18 @@ class VectorStoreThreadSafetyTests(TransactionTestCase):
 
         business = Business.objects.create(name="Qdrant thread test")
         fake_client = FakeClient()
-        with patch("businesses.vector_store._client", return_value=fake_client):
+        class FakeModel:
+            max_seq_length = 512
+
+            def get_sentence_embedding_dimension(self):
+                return 1
+
+        vector_store.reset_clients()
+        with (
+            override_settings(EMBEDDING_MODEL="test-qdrant-model"),
+            patch.dict(vector_store._embedding_models, {"test-qdrant-model": FakeModel()}),
+            patch("businesses.vector_store._client", return_value=fake_client),
+        ):
             with ThreadPoolExecutor(max_workers=6) as workers:
                 list(workers.map(lambda _i: vector_store.upsert_vector(business, uuid4(), [1.0]), range(12)))
 

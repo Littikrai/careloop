@@ -33,4 +33,4 @@ Resolution: เปลี่ยนจากการแบ่งตามจำ�
 
 เก็บ index signature ที่ประกอบด้วย model ID, embedding dimension, max sequence length และ chunker version การเพิ่ม document ingestion ครั้งแรกให้รับรอง vectors ของ Q&A เดิมด้วย signature ของโมเดลปัจจุบัน จึงไม่บังคับ reindex หากผู้ติดตั้งยังใช้โมเดลเดิม
 
-การเปลี่ยน model หรือ chunker version เป็น maintenance operation ที่ reindex Q&A และเอกสารทั้งหมด ไม่เปลี่ยนกลางการทำงานของ web process คำสั่ง reindex สร้าง Qdrant generation ใหม่แยกจากชุด active และสลับ generation ของแต่ละธุรกิจเมื่อสร้างครบเท่านั้น หากล้มเหลวให้เก็บ generation เดิมไว้เพื่อย้อนกลับ หลังสำเร็จจึงลบ vectors รุ่นเก่าแบบ best effort ผู้ติดตั้งต้องหยุด web, เปลี่ยน config, รันคำสั่ง reindex และเปิด web ใหม่ตามขั้นตอนใน README
+สำหรับการติดตั้งปัจจุบันที่มีข้อมูลไม่มาก การเปลี่ยน model หรือ chunker version เป็น maintenance operation แบบ offline: สำรองดัชนีเดิม, หยุด web, rebuild vectors ของ Published Q&A และ Documents จากข้อมูลต้นฉบับ แล้วเปิด web ด้วย config ใหม่เมื่อ rebuild สำเร็จเท่านั้น หากล้มเหลวให้ restore backup และ config เดิมหรือเริ่ม rebuild ใหม่ การยอมรับ downtime ทำให้ไม่ต้องสร้าง generation swap แบบ zero-downtime ในรอบนี้

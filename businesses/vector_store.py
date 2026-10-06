@@ -1,4 +1,5 @@
 import hashlib
+import json
 import threading
 from pathlib import Path
 from typing import Any
@@ -51,8 +52,34 @@ def reset_clients() -> None:
 
 
 def _collection_name(business: Business) -> str:
-    model_hash = hashlib.sha256(settings.EMBEDDING_MODEL.encode()).hexdigest()[:12]
-    return f"business_{business.id.hex}_{model_hash}"
+    model_signature = embedding_model_details()
+    signature = {
+        "model": model_signature["model"],
+        "dimensions": model_signature["dimensions"],
+        "max_seq_length": model_signature["max_seq_length"],
+        "chunker_version": settings.DOCUMENT_CHUNKER_VERSION,
+        "chunk_target_tokens": settings.DOCUMENT_CHUNK_TARGET_TOKENS,
+        "chunk_max_tokens": settings.DOCUMENT_CHUNK_MAX_TOKENS,
+        "prefix_strategy": model_signature["prefix_strategy"],
+    }
+    encoded = json.dumps(signature, sort_keys=True, separators=(",", ":")).encode()
+    index_hash = hashlib.sha256(encoded).hexdigest()[:12]
+    return f"business_{business.id.hex}_{index_hash}"
+
+
+def _prefix_strategy() -> str:
+    return "e5-passage-query-v1" if settings.EMBEDDING_MODEL.lower().startswith("intfloat/multilingual-e5-") else "none"
+
+
+def document_embedding_prefix() -> str:
+    return "passage: " if _prefix_strategy() == "e5-passage-query-v1" else ""
+
+
+def _embedding_dimension(model: Any) -> int:
+    getter = getattr(model, "get_embedding_dimension", None) or getattr(
+        model, "get_sentence_embedding_dimension"
+    )
+    return int(getter())
 
 
 def _model():
@@ -71,11 +98,22 @@ def embedding_tokenizer():
         return _LockedTokenizer(model.tokenizer), int(model.max_seq_length)
 
 
+def embedding_model_details() -> dict[str, str | int]:
+    model = _model()
+    return {
+        "model": settings.EMBEDDING_MODEL,
+        "dimensions": _embedding_dimension(model),
+        "max_seq_length": int(model.max_seq_length),
+        "prefix_strategy": _prefix_strategy(),
+    }
+
+
 def embed_documents(texts: list[str]) -> list[list[float]]:
     if not texts:
         return []
     with _embedding_lock:
-        vectors = _model().encode(texts, normalize_embeddings=True)
+        prefix = document_embedding_prefix()
+        vectors = _model().encode([f"{prefix}{text}" for text in texts], normalize_embeddings=True)
         return [[float(value) for value in vector] for vector in vectors]
 
 
@@ -84,7 +122,10 @@ def embed_document(text: str) -> list[float]:
 
 
 def embed_query(text: str) -> list[float]:
-    return embed_document(text)
+    with _embedding_lock:
+        prefix = "query: " if _prefix_strategy() == "e5-passage-query-v1" else ""
+        vector = _model().encode(f"{prefix}{text}", normalize_embeddings=True)
+        return [float(value) for value in vector]
 
 
 def upsert_vector(business: Business, item_id: UUID, vector: list[float]) -> None:

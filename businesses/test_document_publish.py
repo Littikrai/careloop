@@ -369,8 +369,18 @@ class DocumentRetrievalTests(TestCase):
             revision=self.revision, order=2, text="Stale failed content",
             index_status=DocumentChunk.IndexStatus.FAILED,
         )
-        with TemporaryDirectory() as path, override_settings(QDRANT_PATH=path):
-            vector_store.reset_clients()
+        class FakeModel:
+            max_seq_length = 512
+
+            def get_sentence_embedding_dimension(self):
+                return 2
+
+        vector_store.reset_clients()
+        with (
+            TemporaryDirectory() as path,
+            override_settings(QDRANT_PATH=path, EMBEDDING_MODEL="test-qdrant-model"),
+            patch.dict(vector_store._embedding_models, {"test-qdrant-model": FakeModel()}),
+        ):
             for chunk in (self.chunk, other_chunk, failed_chunk):
                 vector_store.upsert_vector(chunk.revision.document.business, chunk.vector_id, [1.0, 0.0])
             result = answer_question(

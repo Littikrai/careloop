@@ -4,8 +4,9 @@ Implementation choice for **เพิ่ม Q&A แล้วถามบอต�
 
 - Administrators create Q&A as drafts. Publishing embeds the question locally and only marks the item published after the vector is stored successfully.
 - Editing a published Q&A creates a replacement draft. A successful replacement overwrites the original item's vector and content, so new retrieval returns one current answer while the original remains available until indexing succeeds. Deletion removes the database record first; a stale vector is ignored by the database check if cleanup fails.
-- The default embedding model is `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`, a CPU-capable multilingual sentence-similarity model. The model name is configurable.
-- Qdrant client local mode persists vectors under the existing application data volume. Each business and embedding model uses a separate collection, and retrieved IDs are checked again against published database records from the current business.
+- The default CPU embedding model is `intfloat/multilingual-e5-small`, selected from a Thai Markdown retrieval benchmark. Indexed content uses `passage: ` and questions use `query: `. The model remains configurable.
+- Qdrant local mode persists vectors under the application data volume. Each business and model/chunker signature uses a separate collection, and retrieved IDs are checked again against published database records from the current business.
+- Document chunks target 224 tokens with a configurable hard cap of 256 tokens; the effective hard cap includes metadata, E5 prefix, and special tokens and cannot exceed the model's sequence limit. Model or chunker changes trigger an offline rebuild before the web process starts, with SQLite/Qdrant backup and restore support.
 - The default OpenRouter model is `openrouter/free`, configurable through `.env`. The API key remains server-side.
 - Answers use published Q&A only. General model knowledge is disallowed. When retrieval is below the configured cosine threshold, the application does not call OpenRouter and reports insufficient knowledge.
 - Up to three relevant Q&A pairs and the current question are sent to OpenRouter. Conversation history and persisted conversations belong to the later conversation ticket.

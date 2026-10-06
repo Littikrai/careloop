@@ -56,15 +56,22 @@ RAG_INSUFFICIENT_MESSAGE = os.environ.get(
 )
 EMBEDDING_MODEL = os.environ.get(
     "EMBEDDING_MODEL",
-    "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
+    "intfloat/multilingual-e5-small",
 )
 DOCUMENT_CHUNK_MAX_TOKENS = int(os.environ.get("DOCUMENT_CHUNK_MAX_TOKENS", "256"))
+DOCUMENT_CHUNK_TARGET_TOKENS = int(os.environ.get("DOCUMENT_CHUNK_TARGET_TOKENS", "224"))
+DOCUMENT_CHUNKER_VERSION = 3
 DOCUMENT_MAX_CHUNKS = int(os.environ.get("DOCUMENT_MAX_CHUNKS", "256"))
 DOCUMENT_EMBED_BATCH_SIZE = int(os.environ.get("DOCUMENT_EMBED_BATCH_SIZE", "16"))
 DOCUMENT_INDEX_BUDGET_SECONDS = int(os.environ.get("DOCUMENT_INDEX_BUDGET_SECONDS", "240"))
 DOCUMENT_INDEX_LEASE_SECONDS = int(os.environ.get("DOCUMENT_INDEX_LEASE_SECONDS", "300"))
 GUNICORN_THREADS = max(3, int(os.environ.get("GUNICORN_THREADS", "3")))
-if DOCUMENT_MAX_CHUNKS < 1 or DOCUMENT_EMBED_BATCH_SIZE < 1:
+if (
+    DOCUMENT_CHUNK_MAX_TOKENS < 1
+    or DOCUMENT_CHUNK_TARGET_TOKENS < 1
+    or DOCUMENT_MAX_CHUNKS < 1
+    or DOCUMENT_EMBED_BATCH_SIZE < 1
+):
     raise ImproperlyConfigured("Document chunk and embedding batch limits must be positive.")
 if not 0 < DOCUMENT_INDEX_BUDGET_SECONDS < 300:
     raise ImproperlyConfigured("DOCUMENT_INDEX_BUDGET_SECONDS must be positive and below Gunicorn's 300-second timeout.")

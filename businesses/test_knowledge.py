@@ -151,8 +151,18 @@ class KnowledgeJourneyTests(TestCase):
             answer="Do not use",
         )
 
-        with TemporaryDirectory() as path, override_settings(QDRANT_PATH=path):
-            vector_store.reset_clients()
+        class FakeModel:
+            max_seq_length = 512
+
+            def get_sentence_embedding_dimension(self):
+                return 2
+
+        vector_store.reset_clients()
+        with (
+            TemporaryDirectory() as path,
+            override_settings(QDRANT_PATH=path, EMBEDDING_MODEL="test-qdrant-model"),
+            patch.dict(vector_store._embedding_models, {"test-qdrant-model": FakeModel()}),
+        ):
             publish_item(
                 coffee_item,
                 embed_document=lambda text: [1.0, 0.0],
@@ -298,8 +308,18 @@ class KnowledgeJourneyTests(TestCase):
             replacement_for=original,
         )
 
-        with TemporaryDirectory() as path, override_settings(QDRANT_PATH=path):
-            vector_store.reset_clients()
+        class FakeModel:
+            max_seq_length = 512
+
+            def get_sentence_embedding_dimension(self):
+                return 2
+
+        vector_store.reset_clients()
+        with (
+            TemporaryDirectory() as path,
+            override_settings(QDRANT_PATH=path, EMBEDDING_MODEL="test-qdrant-model"),
+            patch.dict(vector_store._embedding_models, {"test-qdrant-model": FakeModel()}),
+        ):
             publish_item(
                 original,
                 embed_document=lambda text: [0.9, 0.435],
@@ -458,8 +478,18 @@ class QdrantVectorStoreTests(TestCase):
         coffee_item = KnowledgeItem.objects.create(business=coffee, question="Hours?", answer="Nine to five")
         books_item = KnowledgeItem.objects.create(business=books, question="Hours?", answer="Ten to six")
 
-        with TemporaryDirectory() as path, override_settings(QDRANT_PATH=path):
-            vector_store.reset_clients()
+        class FakeModel:
+            max_seq_length = 512
+
+            def get_sentence_embedding_dimension(self):
+                return 2
+
+        vector_store.reset_clients()
+        with (
+            TemporaryDirectory() as path,
+            override_settings(QDRANT_PATH=path, EMBEDDING_MODEL="test-qdrant-model"),
+            patch.dict(vector_store._embedding_models, {"test-qdrant-model": FakeModel()}),
+        ):
             vector_store.upsert_vector(coffee, coffee_item.id, [1.0, 0.0])
             vector_store.upsert_vector(books, books_item.id, [0.0, 1.0])
             self.assertEqual(

@@ -39,6 +39,21 @@ Open **Documents → Add Document** in the admin, choose a business, then paste 
 
 To add several documents at once, choose **Documents → Import Documents from JSON**, select the business, and upload a UTF-8 JSON array up to 5 MiB. Each object needs string `title` and `content`; string `product` and `version` are optional. See [the example import file](examples/document-import.example.json). The importer validates the whole file before saving anything, skips exact duplicates within the selected business, and shows the number created and skipped. Imported documents remain drafts; the JSON file cannot select a business or publish content.
 
+## Embedding model and maintenance rebuild
+
+The default CPU model is `intfloat/multilingual-e5-small`. It uses `passage: ` when indexing Q&A/documents and `query: ` for customer questions. Document chunks target 224 tokens and have a hard limit of 256, including metadata, E5 prefix, and tokenizer special tokens. Changing the model or chunk settings changes the index signature and collection namespace.
+
+To apply a model or chunker change, set the desired values in `.env`, then run `docker compose down` followed by `docker compose up --build -d`. The app backs up SQLite and local Qdrant under `/data/backups/knowledge-index/`, rebuilds every Published Q&A and Document from its saved source, and starts Gunicorn only after the rebuild succeeds. Check `docker compose logs -f web`; health becomes available after model download and indexing finish. Keep the data volume: `docker compose down -v` deletes both the source data and its backups.
+
+If a rebuild fails, stop the restarting service with `docker compose down`, set the previous `EMBEDDING_MODEL` and chunk settings in `.env`, then restore the backup path printed in the web logs:
+
+```sh
+docker compose run --rm --no-deps web python manage.py restore_knowledge_index_backup /data/backups/knowledge-index/BACKUP_DIRECTORY
+docker compose up -d
+```
+
+The rebuild command leaves the old SQLite/Qdrant files intact until all new vectors are written. A failed run keeps Published source records untouched and retries the same target signature with deterministic vector IDs, reusing its original rollback backup. Rebuilds intentionally require a maintenance window; the backup is retained until manually removed from the Docker volume.
+
 ## Embed on a business website
 
 In the admin, add an entry under **Business integrations**, choose its business, and add one allowed website origin on each line. Use exact origins, for example https://shop.example and http://localhost:3000; paths and wildcards are not accepted. Open the saved integration to copy its widget tag:
@@ -60,7 +75,7 @@ Use **Create or rotate API key** on a Business integration, copy the one-time ke
 
 A successful response has `answer`, `status` (`answer`, `needs_clarification`, or `insufficient_knowledge`), and `sources` (an array of public labels such as `{"type":"qa","label":"Verified answer"}` or Document title/heading/product/version). File names, raw chunks, similarity scores, and internal IDs are omitted. Invalid or revoked keys return 401; malformed questions return 422; exhausted API-key rate limits return 429; RAG or LLM failures return 503. This endpoint deliberately has no CORS support, so do not put its API key in browser code. Use the widget for browser chat.
 
-SQLite data, Qdrant vectors, and the downloaded embedding model live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
+SQLite data, Qdrant vectors, the downloaded embedding model, and index backups live in the `app_data` Docker volume. `docker compose restart` and `docker compose down` keep it. `docker compose down -v` deletes that volume and its data. Keep `.env` when restarting: changing its secret invalidates existing login sessions. To reset a password, run `docker compose exec web python manage.py changepassword USERNAME`.
 
 The published port binds to the local machine only. Before exposing the service publicly, configure an HTTPS reverse proxy, trusted hosts, secure cookies, and access-rate limits appropriate to your deployment. `DJANGO_HTTPS_ONLY=true` enables HTTPS redirects and secure cookies; the proxy must provide a correctly trusted HTTPS scheme to the application. Public HTTPS deployment is not tested in this slice.
 
@@ -76,8 +91,9 @@ The published port binds to the local machine only. Before exposing the service 
 | `DATA_DIR` | Persistent data directory; `/data` in the container |
 | `OPENROUTER_API_KEY` | Required server-side key for generated answers |
 | `OPENROUTER_MODEL` | OpenRouter model slug; defaults to `openrouter/free` for trials. Use a fixed compatible model for predictable production answers. |
-| `EMBEDDING_MODEL` | sentence-transformers model; changing it requires reindexing in a later ticket |
-| `DOCUMENT_CHUNK_MAX_TOKENS` | Upper bound for document preview chunks; defaults to `256` and is capped by the embedding model's sequence limit |
+| `EMBEDDING_MODEL` | sentence-transformers model; defaults to `intfloat/multilingual-e5-small`; a model change triggers a full offline rebuild at startup |
+| `DOCUMENT_CHUNK_TARGET_TOKENS` | Soft target for each document chunk; defaults to `224` tokens |
+| `DOCUMENT_CHUNK_MAX_TOKENS` | Hard upper bound for document chunks, including metadata, model prefix, and special tokens; defaults to `256` and is capped by the embedding model's sequence limit |
 | `DOCUMENT_MAX_CHUNKS` | Maximum chunks accepted for one preview or publish; defaults to `256` |
 | `DOCUMENT_EMBED_BATCH_SIZE` | Document chunks embedded per model call; defaults to `16` |
 | `DOCUMENT_INDEX_BUDGET_SECONDS` | Maximum indexing duration; defaults to `240` seconds, below Gunicorn's 300-second timeout |
@@ -104,6 +120,7 @@ set -a
 . ./.env
 set +a
 python manage.py migrate
+python manage.py rebuild_knowledge_index
 python manage.py createsuperuser
 python manage.py collectstatic --noinput
 python manage.py runserver

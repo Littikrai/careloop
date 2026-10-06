@@ -5,7 +5,9 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 
 from .models import Business, Document, DocumentRevision
+from . import document_chunks
 from .document_chunks import preview_chunks
+from .vector_store import document_embedding_prefix
 
 
 class CharacterTokenizer:
@@ -132,15 +134,100 @@ class DocumentAdminTests(TestCase):
 
 
 class ChunkPreviewTests(TestCase):
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=34)
+    def test_oversized_spec_line_keeps_measurement_and_unit_together(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document, title="M", content="## Specs\n" + "A" * 13 + " Weight: 620 grams plus more",
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=34)
+        self.assertTrue(any("620 grams" in chunk.text for chunk in chunks))
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=34)
+    def test_numeric_ranges_keep_both_endpoints_with_their_unit(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document,
+            title="M",
+            content="Specs: " + "A" * 10 + " input voltage is 220–240 V AC",
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=34)
+        self.assertTrue(any("220–240 V" in chunk.text for chunk in chunks))
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=42)
+    def test_markdown_table_rows_remain_complete(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document,
+            title="M",
+            content=(
+                "## Specs\n| Item | Value |\n| --- | --- |\n"
+                "| Weight | 620 grams |\n| Power | 18 watts |\n| Outlet | 16 mm |"
+            ),
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=42)
+        for row in ("| Weight | 620 grams |", "| Power | 18 watts |", "| Outlet | 16 mm |"):
+            self.assertTrue(any(row in chunk.text.splitlines() for chunk in chunks), row)
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48, DOCUMENT_CHUNK_TARGET_TOKENS=24)
+    def test_single_newline_lines_stay_in_one_paragraph_unit_when_they_fit_hard_limit(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document,
+            title="M",
+            content="First line\ncontinued text",
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=64)
+        self.assertEqual(len(chunks), 1)
+        self.assertIn("First line\ncontinued text", chunks[0].text)
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=34)
+    def test_list_item_continuation_stays_with_its_specification(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document,
+            title="M",
+            content="- Model: P200\n- Weight: 620 g\n  Cable\n- Power: 18 W",
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=34)
+        self.assertTrue(
+            any("- Weight: 620 g" in chunk.text and "Cable" in chunk.text for chunk in chunks)
+        )
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=42)
+    def test_markdown_table_without_outer_pipes_keeps_data_rows_complete(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document,
+            title="M",
+            content="Item | Value\n--- | ---\nWeight | 620 grams\nPower | 18 watts\nOutlet | 16 mm",
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=42)
+        for row in ("Weight | 620 grams", "Power | 18 watts", "Outlet | 16 mm"):
+            self.assertTrue(any(row in chunk.text.splitlines() for chunk in chunks), row)
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=34)
+    def test_spec_values_are_not_split_across_chunks(self):
+        document = Document.objects.create(business=Business.objects.create(name="Pump shop"))
+        revision = DocumentRevision.objects.create(
+            document=document, title="M",
+            content="## Specs\n- Power: 18 W\n- Weight: 620 g\n- Outlet: 16 mm",
+        )
+        chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=34)
+        self.assertGreater(len(chunks), 1)
+        lines = {"- Power: 18 W", "- Weight: 620 g", "- Outlet: 16 mm"}
+        self.assertTrue(all(set(chunk.text.splitlines()) <= lines for chunk in chunks))
+        self.assertTrue(all(any(line in chunk.text for chunk in chunks) for line in lines))
+
     @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48)
     def test_overlap_carries_across_headings_in_one_document(self):
         document = Document.objects.create(business=Business.objects.create(name="Router shop"))
         revision = DocumentRevision.objects.create(
-            document=document, title="M", content="A" * 30 + "\n# Second\n" + "B" * 20,
+            document=document, title="M", content="A" * 30 + "\n\nHelp\n# Second\n" + "B" * 20,
         )
         chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=48)
         second = next(chunk for chunk in chunks if chunk.heading == "Second")
-        self.assertRegex(second.text, r"^A{6}\nB")
+        self.assertRegex(second.text, r"^Help\nB")
         self.assertIn("B" * 20, second.text)
 
     @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48)
@@ -167,8 +254,36 @@ class ChunkPreviewTests(TestCase):
         self.assertEqual([chunk.order for chunk in chunks], list(range(1, len(chunks) + 1)))
         self.assertTrue(all(chunk.heading == "Speed" for chunk in chunks))
         self.assertTrue(all(chunk.token_count <= 48 for chunk in chunks))
-        self.assertTrue(all(len(tokenizer.encode(chunk.embedding_text, add_special_tokens=True)) <= 48 for chunk in chunks))
+        self.assertTrue(
+            all(
+                chunk.token_count
+                == len(tokenizer.encode(f"{document_embedding_prefix()}{chunk.embedding_text}", add_special_tokens=True))
+                for chunk in chunks
+            )
+        )
         self.assertIn("Wi-Fi 6", " ".join(chunk.text for chunk in chunks))
+        source = "".join(char for char in revision.content.split("\n", 1)[1] if not char.isspace())
+        indexed = "".join(char for chunk in chunks for char in chunk.text if not char.isspace())
+        cursor = 0
+        for char in indexed:
+            if cursor < len(source) and char == source[cursor]:
+                cursor += 1
+        self.assertEqual(cursor, len(source), "The Markdown chunk windows must retain every non-whitespace source character.")
+
+    @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=128)
+    def test_many_short_spec_items_precompute_numeric_boundaries_once(self):
+        document = Document.objects.create(business=Business.objects.create(name="Router shop"))
+        rows = [f"- Spec item {index}: 620 g" for index in range(1000)]
+        revision = DocumentRevision.objects.create(document=document, title="Specs", content="\n".join(rows))
+        with patch(
+            "businesses.document_chunks._numeric_unsafe_token_ends",
+            wraps=document_chunks._numeric_unsafe_token_ends,
+        ) as scan_numeric_spans:
+            chunks = preview_chunks(revision, tokenizer=CharacterTokenizer(), max_seq_length=128)
+
+        self.assertEqual(scan_numeric_spans.call_count, 1)
+        indexed_lines = {line for chunk in chunks for line in chunk.text.splitlines()}
+        self.assertTrue(all(row in indexed_lines for row in rows))
 
     @override_settings(DOCUMENT_CHUNK_MAX_TOKENS=48)
     def test_long_metadata_is_trimmed_before_body(self):
