@@ -82,7 +82,7 @@ The published port binds to the local machine only. Before exposing the service 
 | `DOCUMENT_EMBED_BATCH_SIZE` | Document chunks embedded per model call; defaults to `16` |
 | `DOCUMENT_INDEX_BUDGET_SECONDS` | Maximum indexing duration; defaults to `240` seconds, below Gunicorn's 300-second timeout |
 | `DOCUMENT_INDEX_LEASE_SECONDS` | Progress lease renewed after each embedding batch; defaults to `300` seconds |
-| `GUNICORN_THREADS` | Gunicorn `gthread` threads on the single worker; defaults to `3` for concurrent chat and indexing requests |
+| `GUNICORN_THREADS` | Gunicorn `gthread` threads on the single worker; defaults to `3`, and lower values are raised to `3` |
 | `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
 | `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Questions per client IP and business; defaults to `30` |

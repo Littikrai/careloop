@@ -15,9 +15,10 @@ from .document_knowledge import (
     publish_document,
     preview_document_chunks,
     recover_document_index_attempts,
-    search_document_chunks,
 )
 from .models import Business, Document, DocumentChunk, DocumentIndexAttempt, DocumentRevision
+from .openrouter import CompletionResult
+from .rag import answer_question
 from . import vector_store
 
 
@@ -50,23 +51,68 @@ class ResponsiveDocumentIndexingTests(TransactionTestCase):
         self.preview = [PreviewChunk(1, "Updated", "New information", "New information", 2)]
 
     def test_chat_can_retrieve_previous_published_revision_during_indexing(self):
+        previews = [
+            *self.preview,
+            PreviewChunk(2, "Updated", "More information", "More information", 2),
+        ]
+        second_batch_started = threading.Event()
+        continue_indexing = threading.Event()
+        candidate_vector_ids = []
+        publish_errors = []
+        batch_count = 0
+
         def embed_documents(texts):
-            matches = search_document_chunks(
-                self.business,
-                [1.0],
-                search_vectors=lambda *args: [(self.published_chunk.vector_id, 0.9)],
-            )
-            self.assertEqual([chunk.pk for chunk, _score in matches], [self.published_chunk.pk])
-            self.assertEqual(list(active_document_chunks(self.business)), [self.published_chunk])
+            nonlocal batch_count
+            batch_count += 1
+            if batch_count == 2:
+                second_batch_started.set()
+                if not continue_indexing.wait(timeout=5):
+                    raise TimeoutError("Test did not resume indexing")
             return [[1.0] for _text in texts]
 
-        with patch("businesses.document_knowledge.preview_chunks", return_value=self.preview):
-            publish_document(
-                self.draft,
-                embed_documents=embed_documents,
-                upsert_vector=lambda *args: None,
-                delete_vector=lambda *args: None,
-            )
+        def publish_in_thread():
+            try:
+                publish_document(
+                    self.draft,
+                    embed_documents=embed_documents,
+                    upsert_vector=lambda _business, vector_id, _vector: candidate_vector_ids.append(vector_id),
+                    delete_vector=lambda *args: None,
+                )
+            except Exception as error:
+                publish_errors.append(error)
+
+        with patch("businesses.document_knowledge.preview_chunks", return_value=previews), override_settings(
+            DOCUMENT_EMBED_BATCH_SIZE=1
+        ):
+            thread = threading.Thread(target=publish_in_thread)
+            thread.start()
+            self.assertTrue(second_batch_started.wait(timeout=5))
+            try:
+                candidate = DocumentChunk.objects.get(vector_id=candidate_vector_ids[0])
+                self.assertEqual(candidate.index_status, DocumentChunk.IndexStatus.PENDING)
+
+                def search(_business, _vector, _limit, _threshold, active_vector_ids):
+                    self.assertEqual(active_vector_ids, [self.published_chunk.vector_id])
+                    return [(candidate.vector_id, 0.99), (self.published_chunk.vector_id, 0.85)]
+
+                result = answer_question(
+                    self.business,
+                    "What information is available?",
+                    embed_query=lambda _question: [1.0],
+                    search_vectors=search,
+                    complete=lambda _question, sources: CompletionResult(
+                        "answer", "Old published information", (str(sources[0]["id"]),)
+                    ),
+                )
+                self.assertEqual(result.text, "Old published information")
+                self.assertEqual(len(result.sources), 1)
+                self.assertEqual(result.sources[0]["title"], "Published manual")
+            finally:
+                continue_indexing.set()
+                thread.join(timeout=10)
+
+        self.assertFalse(thread.is_alive())
+        self.assertEqual(publish_errors, [])
 
         self.published.refresh_from_db()
         self.assertEqual(self.published.status, DocumentRevision.Status.ARCHIVED)

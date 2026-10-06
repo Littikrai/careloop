@@ -1,8 +1,7 @@
 import hashlib
 import threading
-from collections.abc import Iterator
-from contextlib import contextmanager
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from django.conf import settings
@@ -14,6 +13,23 @@ _clients: dict[str, QdrantClient] = {}
 _embedding_models: dict[str, object] = {}
 _qdrant_lock = threading.RLock()
 _embedding_lock = threading.RLock()
+
+
+class _LockedTokenizer:
+    def __init__(self, tokenizer: Any) -> None:
+        self._tokenizer = tokenizer
+
+    def __call__(self, *args: Any, **kwargs: Any) -> Any:
+        with _embedding_lock:
+            return self._tokenizer(*args, **kwargs)
+
+    def encode(self, *args: Any, **kwargs: Any) -> Any:
+        with _embedding_lock:
+            return self._tokenizer.encode(*args, **kwargs)
+
+    def num_special_tokens_to_add(self, *args: Any, **kwargs: Any) -> int:
+        with _embedding_lock:
+            return int(self._tokenizer.num_special_tokens_to_add(*args, **kwargs))
 
 
 def _client() -> QdrantClient:
@@ -52,13 +68,7 @@ def _model():
 def embedding_tokenizer():
     with _embedding_lock:
         model = _model()
-        return model.tokenizer, int(model.max_seq_length)
-
-
-@contextmanager
-def embedding_model_access() -> Iterator[None]:
-    with _embedding_lock:
-        yield
+        return _LockedTokenizer(model.tokenizer), int(model.max_seq_length)
 
 
 def embed_documents(texts: list[str]) -> list[list[float]]:

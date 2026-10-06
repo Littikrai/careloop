@@ -4,7 +4,7 @@
 
 **Blocked by:** 04: เผยแพร่ Document และตอบพร้อมแหล่งอ้างอิง; 05: แทนที่ Archive และลบ Document อย่างปลอดภัย.
 
-**Status:** completed
+**Status:** resolved
 
 - [x] Docker ใช้ Gunicorn `gthread` หนึ่ง worker และอย่างน้อยสาม threads โดยจำนวน threads ตั้งค่าจาก environment ได้ แต่ไม่เปิดหลาย workers ขณะใช้ Qdrant local
 - [x] Qdrant local client เปิดใช้ข้าม thread ภายใต้ `RLock` เดียวสำหรับการสร้าง client/search/create/upsert/delete และ SentenceTransformer มี lock แยก; document embeddings ทำเป็น batch ค่าเริ่มต้น 16 แล้วคืน lock ทุก batch
@@ -17,3 +17,7 @@
 ## Verification
 
 ผ่าน Django system check, migration check, mypy และชุดทดสอบเต็ม 112 รายการ
+
+## Comments
+
+- 2026-10-06: Implemented single-worker threaded serving, batched and synchronized local indexing, per-attempt progress/recovery, and concurrent chat coverage that confirms uncommitted candidate vectors stay hidden.

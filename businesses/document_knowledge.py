@@ -15,7 +15,6 @@ from .models import Business, Document, DocumentChunk, DocumentIndexAttempt, Doc
 from .vector_store import delete_vector as default_delete_vector
 from .vector_store import embed_documents as default_embed_documents
 from .vector_store import embed_query as default_embed_query
-from .vector_store import embedding_model_access
 from .vector_store import search_vectors as default_search_vectors
 from .vector_store import upsert_vector as default_upsert_vector
 
@@ -112,8 +111,7 @@ def active_document_chunks(business: Business) -> QuerySet[DocumentChunk]:
 
 
 def preview_document_chunks(revision: DocumentRevision):
-    with embedding_model_access():
-        chunks = preview_chunks(revision)
+    chunks = preview_chunks(revision)
     maximum = settings.DOCUMENT_MAX_CHUNKS
     if len(chunks) > maximum:
         raise ValueError(f"Document preview has {len(chunks)} chunks; it exceeds the maximum of {maximum} chunks.")
