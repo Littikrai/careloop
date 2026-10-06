@@ -59,6 +59,17 @@ EMBEDDING_MODEL = os.environ.get(
     "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
 )
 DOCUMENT_CHUNK_MAX_TOKENS = int(os.environ.get("DOCUMENT_CHUNK_MAX_TOKENS", "256"))
+DOCUMENT_MAX_CHUNKS = int(os.environ.get("DOCUMENT_MAX_CHUNKS", "256"))
+DOCUMENT_EMBED_BATCH_SIZE = int(os.environ.get("DOCUMENT_EMBED_BATCH_SIZE", "16"))
+DOCUMENT_INDEX_BUDGET_SECONDS = int(os.environ.get("DOCUMENT_INDEX_BUDGET_SECONDS", "240"))
+DOCUMENT_INDEX_LEASE_SECONDS = int(os.environ.get("DOCUMENT_INDEX_LEASE_SECONDS", "300"))
+GUNICORN_THREADS = max(3, int(os.environ.get("GUNICORN_THREADS", "3")))
+if DOCUMENT_MAX_CHUNKS < 1 or DOCUMENT_EMBED_BATCH_SIZE < 1:
+    raise ImproperlyConfigured("Document chunk and embedding batch limits must be positive.")
+if not 0 < DOCUMENT_INDEX_BUDGET_SECONDS < 300:
+    raise ImproperlyConfigured("DOCUMENT_INDEX_BUDGET_SECONDS must be positive and below Gunicorn's 300-second timeout.")
+if DOCUMENT_INDEX_LEASE_SECONDS <= DOCUMENT_INDEX_BUDGET_SECONDS:
+    raise ImproperlyConfigured("DOCUMENT_INDEX_LEASE_SECONDS must exceed the indexing time budget.")
 QDRANT_PATH = os.environ.get("QDRANT_PATH", str(DATA_DIR / "qdrant"))
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/free")

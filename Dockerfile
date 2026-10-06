@@ -11,4 +11,4 @@ RUN DJANGO_SECRET_KEY=build-only-placeholder-not-a-runtime-secret-1234567890 pyt
     && mkdir -p /data && chown -R 10001:10001 /data
 USER 10001:10001
 EXPOSE 8000
-CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py shell -c \"from businesses.vector_store import embed_document; embed_document('warmup')\" && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 300 --no-control-socket --access-logfile - --error-logfile -"]
+CMD ["sh", "-c", "python manage.py migrate --noinput && python manage.py recover_document_indexing --startup && python manage.py shell -c \"from businesses.vector_store import embed_document; embed_document('warmup')\" && exec gunicorn config.wsgi:application --bind 0.0.0.0:8000 --worker-class gthread --workers 1 --threads \"${GUNICORN_THREADS:-3}\" --timeout 300 --no-control-socket --access-logfile - --error-logfile -"]

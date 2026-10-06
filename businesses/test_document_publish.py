@@ -29,10 +29,10 @@ class DocumentPublishTests(TestCase):
     def test_publish_indexes_all_chunks_before_making_revision_live(self):
         embedded = []
 
-        def embed(text):
+        def embed_documents(texts):
             self.assertEqual(self.revision.status, DocumentRevision.Status.DRAFT)
-            embedded.append(text)
-            return [1.0, 0.0]
+            embedded.extend(texts)
+            return [[1.0, 0.0] for _text in texts]
 
         def upsert(business, vector_id, vector):
             self.assertEqual(business, self.business)
@@ -41,7 +41,7 @@ class DocumentPublishTests(TestCase):
             self.assertEqual(DocumentRevision.objects.get(pk=self.revision.pk).status, DocumentRevision.Status.DRAFT)
 
         with patch("businesses.document_knowledge.preview_chunks", return_value=self.preview):
-            count = publish_document(self.revision, embed_document=embed, upsert_vector=upsert)
+            count = publish_document(self.revision, embed_documents=embed_documents, upsert_vector=upsert)
 
         self.revision.refresh_from_db()
         self.assertEqual(count, 2)
@@ -56,6 +56,7 @@ class DocumentPublishTests(TestCase):
 
     def test_publish_failure_keeps_draft_and_no_chunk_is_retrievable(self):
         calls = 0
+        deleted = []
 
         def upsert(*args):
             nonlocal calls
@@ -66,17 +67,21 @@ class DocumentPublishTests(TestCase):
         with patch("businesses.document_knowledge.preview_chunks", return_value=self.preview):
             with self.assertRaisesRegex(RuntimeError, "Qdrant unavailable"):
                 publish_document(
-                    self.revision, embed_document=lambda text: [1.0], upsert_vector=upsert
+                    self.revision,
+                    embed_documents=lambda texts: [[1.0] for _text in texts],
+                    upsert_vector=upsert,
+                    delete_vector=lambda business, vector_id: deleted.append((business.pk, vector_id)),
                 )
         self.revision.refresh_from_db()
         self.assertEqual(self.revision.status, DocumentRevision.Status.DRAFT)
         self.assertEqual(self.revision.index_status, DocumentRevision.IndexStatus.FAILED)
         self.assertIn("Qdrant unavailable", self.revision.index_error)
+        self.assertEqual(len(deleted), 2)
         self.assertFalse(DocumentChunk.objects.filter(revision=self.revision, index_status=DocumentChunk.IndexStatus.READY).exists())
 
         with patch("businesses.document_knowledge.preview_chunks", return_value=self.preview):
             retried = publish_document(
-                self.revision, embed_document=lambda text: [1.0], upsert_vector=lambda *args: None
+                self.revision, embed_documents=lambda texts: [[1.0] for _text in texts], upsert_vector=lambda *args: None
             )
         self.revision.refresh_from_db()
         self.assertEqual(retried, 2)
@@ -87,7 +92,7 @@ class DocumentPublishTests(TestCase):
         get_user_model().objects.create_superuser("owner", "", "Strong-password-123")
         self.client.login(username="owner", password="Strong-password-123")
         url = f"/admin/businesses/documentrevision/{self.revision.pk}/publish/"
-        with patch("businesses.admin.preview_chunks", return_value=self.preview):
+        with patch("businesses.admin.preview_document_chunks", return_value=self.preview):
             response = self.client.get(url)
         self.assertContains(response, "Router shop")
         self.assertContains(response, "X500 specifications")

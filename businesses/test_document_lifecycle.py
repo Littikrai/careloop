@@ -108,7 +108,7 @@ class DocumentLifecycleTests(TestCase):
         with patch("businesses.document_knowledge.preview_chunks", return_value=preview):
             count = publish_document(
                 replacement,
-                embed_document=lambda text: [1.0, 0.0],
+                embed_documents=lambda texts: [[1.0, 0.0] for _text in texts],
                 upsert_vector=lambda *args: None,
                 delete_vector=lambda business, vector_id: deleted.append((business.pk, vector_id)),
             )
@@ -133,8 +133,9 @@ class DocumentLifecycleTests(TestCase):
             with self.assertRaisesRegex(RuntimeError, "Qdrant unavailable"):
                 publish_document(
                     replacement,
-                    embed_document=lambda text: [1.0],
+                    embed_documents=lambda texts: [[1.0] for _text in texts],
                     upsert_vector=fail_upsert,
+                    delete_vector=lambda *args: None,
                 )
 
         self.published.refresh_from_db()

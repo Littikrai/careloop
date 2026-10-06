@@ -154,6 +154,7 @@ class DocumentRevision(models.Model):
         PENDING = "pending", "Pending"
         READY = "ready", "Ready"
         FAILED = "failed", "Failed"
+        INTERRUPTED = "interrupted", "Interrupted"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name="revisions")
@@ -228,6 +229,32 @@ class DocumentChunk(models.Model):
 
     def __str__(self) -> str:
         return f"{self.revision} · chunk {self.order}"
+
+
+class DocumentIndexAttempt(models.Model):
+    class Status(models.TextChoices):
+        RUNNING = "running", "Running"
+        SUCCEEDED = "succeeded", "Succeeded"
+        FAILED = "failed", "Failed"
+        INTERRUPTED = "interrupted", "Interrupted"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    revision = models.ForeignKey(DocumentRevision, on_delete=models.CASCADE, related_name="index_attempts")
+    status = models.CharField(max_length=16, choices=Status, default=Status.RUNNING)
+    owner_id = models.CharField(max_length=64)
+    chunks_total = models.PositiveIntegerField(default=0)
+    chunks_completed = models.PositiveIntegerField(default=0)
+    started_at = models.DateTimeField(auto_now_add=True)
+    heartbeat_at = models.DateTimeField(default=timezone.now)
+    lease_expires_at = models.DateTimeField()
+    finished_at = models.DateTimeField(blank=True, null=True)
+    error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-started_at", "id"]
+
+    def __str__(self) -> str:
+        return f"Index attempt {self.pk} for {self.revision} ({self.status})"
 
 
 class BusinessIntegration(models.Model):

@@ -78,13 +78,18 @@ The published port binds to the local machine only. Before exposing the service 
 | `OPENROUTER_MODEL` | OpenRouter model slug; defaults to `openrouter/free` for trials. Use a fixed compatible model for predictable production answers. |
 | `EMBEDDING_MODEL` | sentence-transformers model; changing it requires reindexing in a later ticket |
 | `DOCUMENT_CHUNK_MAX_TOKENS` | Upper bound for document preview chunks; defaults to `256` and is capped by the embedding model's sequence limit |
+| `DOCUMENT_MAX_CHUNKS` | Maximum chunks accepted for one preview or publish; defaults to `256` |
+| `DOCUMENT_EMBED_BATCH_SIZE` | Document chunks embedded per model call; defaults to `16` |
+| `DOCUMENT_INDEX_BUDGET_SECONDS` | Maximum indexing duration; defaults to `240` seconds, below Gunicorn's 300-second timeout |
+| `DOCUMENT_INDEX_LEASE_SECONDS` | Progress lease renewed after each embedding batch; defaults to `300` seconds |
+| `GUNICORN_THREADS` | Gunicorn `gthread` threads on the single worker; defaults to `3` for concurrent chat and indexing requests |
 | `RAG_SCORE_THRESHOLD` | Minimum cosine score; defaults to `0.55` |
 | `RAG_TOP_K` | Maximum Q&A entries sent to the LLM; defaults to `3` |
 | `CHAT_RATE_LIMIT_PER_MINUTE` | Questions per client IP and business; defaults to `30` |
 | `API_RATE_LIMIT_PER_MINUTE` | Questions per API key per minute; defaults to `30` |
 | `PUBLIC_BASE_URL` | Public base URL used in admin widget and iframe installation code; defaults to `http://localhost:8080` |
 
-The OpenRouter key is never rendered into a page. Every completion requires strict JSON Schema support; an incompatible model/provider returns a service error. The current chat is single-turn; conversation persistence belongs to a later ticket. The in-process rate limit matches the single Gunicorn worker and should use a shared cache if a deployment adds workers or replicas.
+The OpenRouter key is never rendered into a page. Every completion requires strict JSON Schema support; an incompatible model/provider returns a service error. The current chat is single-turn; conversation persistence belongs to a later ticket. Compose uses one Gunicorn `gthread` worker because Qdrant runs locally; `GUNICORN_THREADS` controls concurrent requests. Do not add workers while using local Qdrant. If you move to process-safe vector storage and add workers or replicas, move the in-process rate limit to a shared cache.
 
 ## Local development and checks
 

@@ -13,13 +13,13 @@ from django.urls import path, reverse
 from django.utils.html import format_html, format_html_join
 from django.utils import timezone
 
-from .document_chunks import preview_chunks
 from .document_importer import DocumentImportError, import_document_json
 from .document_knowledge import (
     archive_document,
     create_document_draft,
     delete_document_revision,
     publish_document,
+    preview_document_chunks,
     test_document_retrieval,
 )
 from .forms import ChatQuestionForm, DocumentDraftForm, DocumentImportForm, KnowledgeImportForm
@@ -270,7 +270,7 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
                 self.message_user(request, f"Published {count} chunk(s) at {revision.updated_at:%Y-%m-%d %H:%M}.", messages.SUCCESS)
             return redirect(url)
         try:
-            chunk_count = len(preview_chunks(revision))
+            chunk_count = len(preview_document_chunks(revision))
             preview_error = ""
         except Exception as error:
             chunk_count = 0
@@ -381,7 +381,8 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
             return ["business", "title", "content", "upload", "product", "version"]
         return [
             "business_name", "title", "content", "product", "version", "source_name",
-            "revision_number", "status", "index_status", "index_error", "character_count", "chunk_preview",
+            "revision_number", "status", "index_status", "index_error", "indexing_progress",
+            "character_count", "chunk_preview",
         ]
 
     def get_readonly_fields(self, request, obj=None):
@@ -389,7 +390,7 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
             return []
         fields = [
             "business_name", "source_name", "revision_number", "status", "index_status",
-            "index_error", "character_count", "chunk_preview",
+            "index_error", "indexing_progress", "character_count", "chunk_preview",
         ]
         if obj.status != DocumentRevision.Status.DRAFT:
             fields += ["title", "content", "product", "version"]
@@ -434,10 +435,20 @@ class DocumentRevisionAdmin(admin.ModelAdmin):
     def character_count(self, obj: DocumentRevision) -> str:
         return f"{len(obj.content)} characters"
 
+    @admin.display(description="Latest indexing attempt")
+    def indexing_progress(self, obj: DocumentRevision) -> str:
+        attempt = obj.index_attempts.first()
+        if attempt is None:
+            return "No indexing attempts"
+        progress = f"{attempt.chunks_completed}/{attempt.chunks_total} chunks"
+        if attempt.error:
+            return f"{attempt.get_status_display()} · {progress} · {attempt.error}"
+        return f"{attempt.get_status_display()} · {progress} · {attempt.pk}"
+
     @admin.display(description="Chunk preview")
     def chunk_preview(self, obj: DocumentRevision):
         try:
-            chunks = preview_chunks(obj)
+            chunks = preview_document_chunks(obj)
         except ValueError as error:
             return f"Preview unavailable: {error}"
         except Exception:
