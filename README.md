@@ -2,6 +2,20 @@
 
 Self-hosted, multi-business customer support. Administrators create and publish Q&A or Documents, questions are embedded locally on CPU, Qdrant retrieves knowledge from the current business, and OpenRouter produces an answer from that knowledge.
 
+## Interface preview
+
+### Customer chat
+
+![Careloop customer chat running locally](docs/images/careloop-chat-actual-clean.jpg)
+
+Screenshot captured from the running application.
+
+### Illustrative mockup
+
+![Illustrative Careloop dashboard and customer chat](docs/images/careloop-ui-overview.png)
+
+Illustrative mockup of document management and the customer chat experience; the example content shown is fictional.
+
 ## Install with Docker Compose
 
 Requires Docker Engine/Desktop with Compose and Python 3 to generate the local configuration. No GPU is needed. Initial setup downloads the image and Python packages.
